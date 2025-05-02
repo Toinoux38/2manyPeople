@@ -10,6 +10,7 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.control.ToolBar;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.Node;
 
 public class GameView {
     private final World world;
@@ -17,12 +18,14 @@ public class GameView {
     private final VBox root;
     private final ToolBar toolbar;
     private String selectedTool = "ROAD";
+    private Rectangle[][] cells;
 
     public GameView(World world) {
         this.world = world;
         this.gridPane = new GridPane();
         this.toolbar = createToolbar();
         this.root = new VBox(toolbar, gridPane);
+        this.cells = new Rectangle[world.getWidth()][world.getHeight()];
         
         initializeGrid();
         setupGridInteraction();
@@ -51,6 +54,7 @@ public class GameView {
             for (int y = 0; y < world.getHeight(); y++) {
                 Rectangle cell = new Rectangle(20, 20);
                 cell.setFill(getColorForTile(world.getTile(x, y)));
+                cells[x][y] = cell;
                 gridPane.add(cell, x, y);
             }
         }
@@ -85,8 +89,7 @@ public class GameView {
     private void updateGrid() {
         for (int x = 0; x < world.getWidth(); x++) {
             for (int y = 0; y < world.getHeight(); y++) {
-                Rectangle cell = (Rectangle) gridPane.getChildren().get(y * world.getWidth() + x);
-                cell.setFill(getColorForTile(world.getTile(x, y)));
+                cells[x][y].setFill(getColorForTile(world.getTile(x, y)));
             }
         }
     }

@@ -1,6 +1,6 @@
 package com.citybuilder.model;
 
-public class PowerPlant extends Building {
+public class PowerPlant extends Zone {
     private static final int POWER_RADIUS = 5; // Rayon d'action de la centrale
     private static final int POWER_CAPACITY = 1000; // Capacité de production d'électricité
 

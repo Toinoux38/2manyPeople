@@ -30,5 +30,6 @@ tasks.test {
 }
 
 tasks.processResources {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
     from("src/main/resources")
 }

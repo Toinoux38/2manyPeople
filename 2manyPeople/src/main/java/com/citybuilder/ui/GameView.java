@@ -22,6 +22,7 @@ public class GameView {
     private final SimulationEngine simulationEngine;
     private int lastX = -1;
     private int lastY = -1;
+    private final Image grassTexture;
 
     public GameView(World world, SimulationEngine simulationEngine) {
         this.world = world;
@@ -41,6 +42,7 @@ public class GameView {
         // Créer le layout principal
         this.root = new VBox(toolbar, statsBar, gameArea);
         this.cells = new Rectangle[world.getWidth()][world.getHeight()];
+        this.grassTexture = new Image("grass.png");
         
         initializeGrid();
         setupGridInteraction();
@@ -210,7 +212,8 @@ public class GameView {
             case "POWER_POLE":
                 return Color.ORANGE;
             case "EMPTY":
-                return Color.TRANSPARENT; // Transparent pour voir l'herbe en dessous
+                // Utiliser une couleur verte pour simuler l'herbe
+                return Color.rgb(34, 139, 34); // Forest Green
             default:
                 return Color.BLACK;
         }

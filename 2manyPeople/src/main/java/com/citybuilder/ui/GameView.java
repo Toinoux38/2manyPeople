@@ -1,5 +1,6 @@
 package com.citybuilder.ui;
 
+import com.citybuilder.SimulationEngine;
 import com.citybuilder.model.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;

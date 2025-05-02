@@ -30,15 +30,18 @@ public class GameView {
         this.gridPane = new GridPane();
         this.toolbar = createToolbar();
         this.statsBar = createStatsBar();
-        this.root = new VBox(toolbar, statsBar, gridPane);
-        this.cells = new Rectangle[world.getWidth()][world.getHeight()];
         
-        // Ajouter un fond d'herbe
+        // Créer un StackPane pour superposer la grille et l'image de fond
+        StackPane gameArea = new StackPane();
         Image grassTexture = new Image("grass.png");
         ImageView background = new ImageView(grassTexture);
         background.setFitWidth(800);
         background.setFitHeight(600);
-        root.getChildren().add(0, background);
+        gameArea.getChildren().addAll(background, gridPane);
+        
+        // Créer le layout principal
+        this.root = new VBox(toolbar, statsBar, gameArea);
+        this.cells = new Rectangle[world.getWidth()][world.getHeight()];
         
         initializeGrid();
         setupGridInteraction();
@@ -177,7 +180,11 @@ public class GameView {
                 world.placeTile(x, y, new PowerPole(x, y));
                 break;
             case "BULLDOZER":
-                world.removeTile(x, y);
+                // Vérifier si la tuile est un bâtiment ou une route
+                Tile currentTile = world.getTile(x, y);
+                if (currentTile instanceof Building || currentTile instanceof Road) {
+                    world.removeTile(x, y);
+                }
                 break;
         }
         updateGrid();

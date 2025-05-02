@@ -14,8 +14,8 @@ public class Game {
     public Game(Stage primaryStage) {
         this.primaryStage = primaryStage;
         this.world = new World(50, 50); // Grille de 50x50
-        this.gameView = new GameView(world);
         this.simulationEngine = new SimulationEngine(world);
+        this.gameView = new GameView(world, simulationEngine);
     }
 
     public void start() {

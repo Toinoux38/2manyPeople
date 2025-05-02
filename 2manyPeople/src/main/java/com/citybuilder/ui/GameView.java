@@ -1,30 +1,30 @@
 package com.citybuilder.ui;
 
-import com.citybuilder.model.ResidentialZone;
-import com.citybuilder.model.Road;
-import com.citybuilder.model.World;
-import com.citybuilder.model.Tile;
+import com.citybuilder.model.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
-import javafx.scene.control.ToolBar;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
+import javafx.scene.control.*;
 import javafx.scene.Node;
+import javafx.beans.binding.Bindings;
 
 public class GameView {
     private final World world;
     private final GridPane gridPane;
     private final VBox root;
     private final ToolBar toolbar;
+    private final HBox statsBar;
     private String selectedTool = "ROAD";
     private Rectangle[][] cells;
+    private final SimulationEngine simulationEngine;
 
-    public GameView(World world) {
+    public GameView(World world, SimulationEngine simulationEngine) {
         this.world = world;
+        this.simulationEngine = simulationEngine;
         this.gridPane = new GridPane();
         this.toolbar = createToolbar();
-        this.root = new VBox(toolbar, gridPane);
+        this.statsBar = createStatsBar();
+        this.root = new VBox(toolbar, statsBar, gridPane);
         this.cells = new Rectangle[world.getWidth()][world.getHeight()];
         
         initializeGrid();
@@ -40,11 +40,38 @@ public class GameView {
         Button residentialButton = new Button("Zone Résidentielle");
         residentialButton.setOnAction(e -> selectedTool = "RESIDENTIAL");
         
+        Button industrialButton = new Button("Zone Industrielle");
+        industrialButton.setOnAction(e -> selectedTool = "INDUSTRIAL");
+        
+        Button powerPlantButton = new Button("Centrale Électrique");
+        powerPlantButton.setOnAction(e -> selectedTool = "POWER_PLANT");
+        
+        Button powerPoleButton = new Button("Pylône Électrique");
+        powerPoleButton.setOnAction(e -> selectedTool = "POWER_POLE");
+        
         Button bulldozerButton = new Button("Bulldozer");
         bulldozerButton.setOnAction(e -> selectedTool = "BULLDOZER");
         
-        toolbar.getItems().addAll(roadButton, residentialButton, bulldozerButton);
+        toolbar.getItems().addAll(roadButton, residentialButton, industrialButton, 
+                                powerPlantButton, powerPoleButton, bulldozerButton);
         return toolbar;
+    }
+
+    private HBox createStatsBar() {
+        HBox statsBar = new HBox(10);
+        statsBar.setPadding(new javafx.geometry.Insets(5));
+        
+        Label populationLabel = new Label();
+        populationLabel.textProperty().bind(Bindings.concat("Population: ", simulationEngine.totalPopulationProperty()));
+        
+        Label workersLabel = new Label();
+        workersLabel.textProperty().bind(Bindings.concat("Travailleurs: ", simulationEngine.totalWorkersProperty()));
+        
+        Label satisfactionLabel = new Label();
+        satisfactionLabel.textProperty().bind(Bindings.concat("Satisfaction: ", simulationEngine.satisfactionRateProperty()));
+        
+        statsBar.getChildren().addAll(populationLabel, workersLabel, satisfactionLabel);
+        return statsBar;
     }
 
     private void initializeGrid() {
@@ -79,6 +106,15 @@ public class GameView {
             case "RESIDENTIAL":
                 world.placeTile(x, y, new ResidentialZone(x, y));
                 break;
+            case "INDUSTRIAL":
+                world.placeTile(x, y, new IndustrialZone(x, y));
+                break;
+            case "POWER_PLANT":
+                world.placeTile(x, y, new PowerPlant(x, y));
+                break;
+            case "POWER_POLE":
+                world.placeTile(x, y, new PowerPole(x, y));
+                break;
             case "BULLDOZER":
                 world.removeTile(x, y);
                 break;
@@ -100,6 +136,12 @@ public class GameView {
                 return Color.GRAY;
             case "RESIDENTIAL":
                 return Color.BLUE;
+            case "INDUSTRIAL":
+                return Color.RED;
+            case "POWER_PLANT":
+                return Color.YELLOW;
+            case "POWER_POLE":
+                return Color.ORANGE;
             case "EMPTY":
                 return Color.WHITE;
             default:

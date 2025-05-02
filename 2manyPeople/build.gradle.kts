@@ -28,3 +28,7 @@ application {
 tasks.test {
     useJUnitPlatform()
 }
+
+tasks.processResources {
+    from("src/main/resources")
+}

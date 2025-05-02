@@ -1,5 +1,7 @@
 package com.citybuilder.ui;
 
+import com.citybuilder.model.ResidentialZone;
+import com.citybuilder.model.Road;
 import com.citybuilder.model.World;
 import com.citybuilder.model.Tile;
 import javafx.scene.layout.*;

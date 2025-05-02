@@ -8,6 +8,9 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.control.*;
 import javafx.scene.Node;
 import javafx.beans.binding.Bindings;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.input.MouseEvent;
 
 public class GameView {
     private final World world;
@@ -18,6 +21,8 @@ public class GameView {
     private String selectedTool = "ROAD";
     private Rectangle[][] cells;
     private final SimulationEngine simulationEngine;
+    private int lastX = -1;
+    private int lastY = -1;
 
     public GameView(World world, SimulationEngine simulationEngine) {
         this.world = world;
@@ -27,6 +32,13 @@ public class GameView {
         this.statsBar = createStatsBar();
         this.root = new VBox(toolbar, statsBar, gridPane);
         this.cells = new Rectangle[world.getWidth()][world.getHeight()];
+        
+        // Ajouter un fond d'herbe
+        Image grassTexture = new Image("grass.png");
+        ImageView background = new ImageView(grassTexture);
+        background.setFitWidth(800);
+        background.setFitHeight(600);
+        root.getChildren().add(0, background);
         
         initializeGrid();
         setupGridInteraction();
@@ -89,14 +101,62 @@ public class GameView {
     }
 
     private void setupGridInteraction() {
-        gridPane.setOnMouseClicked(event -> {
-            int x = (int) (event.getX() / 20);
-            int y = (int) (event.getY() / 20);
-            
-            if (x >= 0 && x < world.getWidth() && y >= 0 && y < world.getHeight()) {
-                handleTileClick(x, y);
+        gridPane.setOnMousePressed(this::handleMousePressed);
+        gridPane.setOnMouseDragged(this::handleMouseDragged);
+        gridPane.setOnMouseReleased(this::handleMouseReleased);
+    }
+
+    private void handleMousePressed(MouseEvent event) {
+        int x = (int) (event.getX() / 20);
+        int y = (int) (event.getY() / 20);
+        
+        if (x >= 0 && x < world.getWidth() && y >= 0 && y < world.getHeight()) {
+            lastX = x;
+            lastY = y;
+            handleTileClick(x, y);
+        }
+    }
+
+    private void handleMouseDragged(MouseEvent event) {
+        int x = (int) (event.getX() / 20);
+        int y = (int) (event.getY() / 20);
+        
+        if (x >= 0 && x < world.getWidth() && y >= 0 && y < world.getHeight() && 
+            (selectedTool.equals("ROAD") || selectedTool.equals("POWER_POLE"))) {
+            if (lastX != -1 && lastY != -1) {
+                // Dessiner une ligne droite
+                drawLine(lastX, lastY, x, y);
             }
-        });
+            lastX = x;
+            lastY = y;
+        }
+    }
+
+    private void handleMouseReleased(MouseEvent event) {
+        lastX = -1;
+        lastY = -1;
+    }
+
+    private void drawLine(int x1, int y1, int x2, int y2) {
+        int dx = Math.abs(x2 - x1);
+        int dy = Math.abs(y2 - y1);
+        int sx = x1 < x2 ? 1 : -1;
+        int sy = y1 < y2 ? 1 : -1;
+        int err = dx - dy;
+
+        while (true) {
+            handleTileClick(x1, y1);
+            if (x1 == x2 && y1 == y2) break;
+            int e2 = 2 * err;
+            if (e2 > -dy) {
+                err -= dy;
+                x1 += sx;
+            }
+            if (e2 < dx) {
+                err += dx;
+                y1 += sy;
+            }
+        }
     }
 
     private void handleTileClick(int x, int y) {
@@ -144,7 +204,7 @@ public class GameView {
             case "POWER_POLE":
                 return Color.ORANGE;
             case "EMPTY":
-                return Color.WHITE;
+                return Color.TRANSPARENT; // Transparent pour voir l'herbe en dessous
             default:
                 return Color.BLACK;
         }

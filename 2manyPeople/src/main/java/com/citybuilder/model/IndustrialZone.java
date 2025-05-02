@@ -1,6 +1,6 @@
 package com.citybuilder.model;
 
-public class IndustrialZone extends Building {
+public class IndustrialZone extends Zone {
     private static final int MAX_WORKERS = 50;
     private int workers;
 

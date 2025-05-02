@@ -1,6 +1,6 @@
 package com.citybuilder.model;
 
-public class ResidentialZone extends Building {
+public class ResidentialZone extends Zone {
     private static final int MAX_POPULATION = 100;
 
     public ResidentialZone(int x, int y) {

@@ -152,4 +152,3 @@ public class World {
         notifyObservers(new WorldEvent(WorldEventType.EVENT_ENDED, event));
     }
 } 
-} 

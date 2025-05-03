@@ -15,6 +15,8 @@ import javafx.geometry.Pos;
 import javafx.scene.text.Text;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
+import javafx.animation.PauseTransition;
+import javafx.util.Duration;
 
 public class GameView implements WorldObserver {
     private final GameController controller;
@@ -110,9 +112,9 @@ public class GameView implements WorldObserver {
         notificationArea.getChildren().add(notification);
         
         // Supprimer la notification après 5 secondes
-        new javafx.animation.PauseTransition(javafx.util.Duration.seconds(5))
-            .setOnFinished(e -> notificationArea.getChildren().remove(notification))
-            .play();
+        PauseTransition pause = new PauseTransition(Duration.seconds(5));
+        pause.setOnFinished(e -> notificationArea.getChildren().remove(notification));
+        pause.play();
     }
 
     private void initializeGrid() {

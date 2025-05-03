@@ -8,16 +8,18 @@ public class World {
     private final int height;
     private final Tile[][] grid;
     private final List<Building> buildings;
+    private final List<Event> activeEvents;
+    private final List<WorldObserver> observers;
 
     public World(int width, int height) {
         this.width = width;
         this.height = height;
         this.grid = new Tile[width][height];
         this.buildings = new ArrayList<>();
-        initializeGrid();
-    }
-
-    private void initializeGrid() {
+        this.activeEvents = new ArrayList<>();
+        this.observers = new ArrayList<>();
+        
+        // Initialize grid with empty tiles
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
                 grid[x][y] = new EmptyTile(x, y);
@@ -25,97 +27,103 @@ public class World {
         }
     }
 
-    public boolean placeTile(int x, int y, Tile tile) {
-        if (tile instanceof Zone) {
-            return placeZone(x, y, (Zone) tile);
-        } else {
-            return placeSingleTile(x, y, tile);
+    public void addObserver(WorldObserver observer) {
+        observers.add(observer);
+    }
+
+    public void removeObserver(WorldObserver observer) {
+        observers.remove(observer);
+    }
+
+    private void notifyObservers(WorldEvent event) {
+        for (WorldObserver observer : observers) {
+            observer.onWorldEvent(event);
         }
     }
 
-    private boolean placeZone(int x, int y, Zone zone) {
-        // Vérifier si la zone peut être placée
-        if (!canPlaceZone(x, y, zone.getZoneSize())) {
+    public boolean placeTile(int x, int y, Tile tile) {
+        if (x < 0 || x >= width || y < 0 || y >= height) {
             return false;
         }
 
-        // Placer la zone
-        for (int i = 0; i < zone.getZoneSize(); i++) {
-            for (int j = 0; j < zone.getZoneSize(); j++) {
-                if (zone.isCellOccupied(i, j)) {
-                    grid[x + i][y + j] = zone;
-                }
-            }
+        if (tile instanceof Zone) {
+            return placeZone(x, y, (Zone) tile);
         }
 
-        buildings.add(zone);
-        return true;
-    }
-
-    private boolean placeSingleTile(int x, int y, Tile tile) {
-        if (isValidPosition(x, y)) {
+        if (grid[x][y].getType().equals("EMPTY")) {
             grid[x][y] = tile;
             if (tile instanceof Building) {
                 buildings.add((Building) tile);
             }
+            notifyObservers(new WorldEvent(WorldEventType.TILE_PLACED, tile));
             return true;
         }
         return false;
     }
 
-    private boolean canPlaceZone(int x, int y, int size) {
-        // Vérifier si la zone est dans les limites
-        if (x < 0 || y < 0 || x + size > width || y + size > height) {
+    public boolean placeZone(int x, int y, Zone zone) {
+        if (!canPlaceZone(x, y, zone.getSize())) {
             return false;
         }
 
-        // Vérifier si toutes les cellules sont vides
+        for (int i = 0; i < zone.getSize(); i++) {
+            for (int j = 0; j < zone.getSize(); j++) {
+                grid[x + i][y + j] = zone;
+            }
+        }
+        buildings.add(zone);
+        notifyObservers(new WorldEvent(WorldEventType.ZONE_PLACED, zone));
+        return true;
+    }
+
+    private boolean canPlaceZone(int x, int y, int size) {
+        if (x + size > width || y + size > height) {
+            return false;
+        }
+
         for (int i = 0; i < size; i++) {
             for (int j = 0; j < size; j++) {
-                if (!(grid[x + i][y + j] instanceof EmptyTile)) {
+                if (!grid[x + i][y + j].getType().equals("EMPTY")) {
                     return false;
                 }
             }
         }
-
         return true;
     }
 
-    public boolean removeTile(int x, int y) {
-        if (isValidPosition(x, y)) {
-            Tile tile = grid[x][y];
+    public void removeTile(int x, int y) {
+        if (x < 0 || x >= width || y < 0 || y >= height) {
+            return;
+        }
+
+        Tile tile = grid[x][y];
+        if (tile instanceof Zone) {
+            removeZone(x, y, (Zone) tile);
+        } else {
             if (tile instanceof Building) {
                 buildings.remove(tile);
-                if (tile instanceof Zone) {
-                    removeZone(x, y, (Zone) tile);
-                } else {
-                    grid[x][y] = new EmptyTile(x, y);
-                }
             }
-            return true;
+            grid[x][y] = new EmptyTile(x, y);
+            notifyObservers(new WorldEvent(WorldEventType.TILE_REMOVED, tile));
         }
-        return false;
     }
 
     private void removeZone(int x, int y, Zone zone) {
-        for (int i = 0; i < zone.getZoneSize(); i++) {
-            for (int j = 0; j < zone.getZoneSize(); j++) {
-                if (zone.isCellOccupied(i, j)) {
-                    grid[x + i][y + j] = new EmptyTile(x + i, y + j);
-                }
+        int size = zone.getSize();
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                grid[x + i][y + j] = new EmptyTile(x + i, y + j);
             }
         }
+        buildings.remove(zone);
+        notifyObservers(new WorldEvent(WorldEventType.ZONE_REMOVED, zone));
     }
 
     public Tile getTile(int x, int y) {
-        if (isValidPosition(x, y)) {
-            return grid[x][y];
+        if (x < 0 || x >= width || y < 0 || y >= height) {
+            return null;
         }
-        return null;
-    }
-
-    private boolean isValidPosition(int x, int y) {
-        return x >= 0 && x < width && y >= 0 && y < height;
+        return grid[x][y];
     }
 
     public int getWidth() {
@@ -127,6 +135,21 @@ public class World {
     }
 
     public List<Building> getBuildings() {
-        return buildings;
+        return new ArrayList<>(buildings);
     }
+
+    public List<Event> getActiveEvents() {
+        return new ArrayList<>(activeEvents);
+    }
+
+    public void addEvent(Event event) {
+        activeEvents.add(event);
+        notifyObservers(new WorldEvent(WorldEventType.EVENT_STARTED, event));
+    }
+
+    public void removeEvent(Event event) {
+        activeEvents.remove(event);
+        notifyObservers(new WorldEvent(WorldEventType.EVENT_ENDED, event));
+    }
+} 
 } 

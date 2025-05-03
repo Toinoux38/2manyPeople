@@ -38,6 +38,18 @@ public abstract class Building extends Tile {
         this.hasRoadAccess = hasRoadAccess;
     }
 
+    public void setRoadAccess(boolean hasRoadAccess) {
+        this.hasRoadAccess = hasRoadAccess;
+    }
+
+    public void setPower(boolean hasPower) {
+        this.hasPower = hasPower;
+    }
+
+    public void setFireRisk(int fireRisk) {
+        this.fireRisk = fireRisk;
+    }
+
     @Override
     public abstract void update();
 } 

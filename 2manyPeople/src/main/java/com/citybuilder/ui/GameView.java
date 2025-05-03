@@ -13,6 +13,12 @@ import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.geometry.Pos;
 import javafx.scene.text.Text;
+import javafx.scene.canvas.Canvas;
+import javafx.scene.canvas.GraphicsContext;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 
 public class GameView implements WorldObserver {
     private final GameController controller;
@@ -247,6 +253,10 @@ public class GameView implements WorldObserver {
                 showNotification("Coupure de courant !");
                 break;
         }
+        updateGrid();
+    }
+
+    public void update() {
         updateGrid();
     }
 } 

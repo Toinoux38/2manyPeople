@@ -3,8 +3,9 @@ package com.citybuilder.model;
 public abstract class Zone extends Building {
     protected static final int ZONE_SIZE = 4;
     protected boolean[][] occupiedCells;
+    private final int size;
 
-    public Zone(int x, int y, String type) {
+    public Zone(int x, int y, String type, int size) {
         super(x, y, type);
         this.occupiedCells = new boolean[ZONE_SIZE][ZONE_SIZE];
         for (int i = 0; i < ZONE_SIZE; i++) {
@@ -12,6 +13,7 @@ public abstract class Zone extends Building {
                 occupiedCells[i][j] = true;
             }
         }
+        this.size = size;
     }
 
     public int getZoneSize() {
@@ -66,6 +68,53 @@ public abstract class Zone extends Building {
                     
                 if (distance <= powerRadius) {
                     return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public int getSize() {
+        return size;
+    }
+
+    @Override
+    public void update(World world) {
+        // Vérifier l'accès aux routes et à l'électricité
+        setHasRoadAccess(checkRoadAccess(world));
+        setHasPower(checkPowerAccess(world));
+    }
+
+    private boolean checkRoadAccess(World world) {
+        // Vérifier si la zone a accès à une route
+        for (int dx = -1; dx <= size; dx++) {
+            for (int dy = -1; dy <= size; dy++) {
+                int checkX = x + dx;
+                int checkY = y + dy;
+                if (checkX >= 0 && checkX < world.getWidth() && 
+                    checkY >= 0 && checkY < world.getHeight()) {
+                    Tile tile = world.getTile(checkX, checkY);
+                    if (tile instanceof Road) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean checkPowerAccess(World world) {
+        // Vérifier si la zone a accès à l'électricité
+        for (int dx = -1; dx <= size; dx++) {
+            for (int dy = -1; dy <= size; dy++) {
+                int checkX = x + dx;
+                int checkY = y + dy;
+                if (checkX >= 0 && checkX < world.getWidth() && 
+                    checkY >= 0 && checkY < world.getHeight()) {
+                    Tile tile = world.getTile(checkX, checkY);
+                    if (tile instanceof PowerPole || tile instanceof PowerPlant) {
+                        return true;
+                    }
                 }
             }
         }

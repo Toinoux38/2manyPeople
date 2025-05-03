@@ -152,7 +152,7 @@ public class GameView implements WorldObserver {
         int y = (int) (event.getY() / 20);
         
         if (x >= 0 && x < controller.getWorld().getWidth() && y >= 0 && y < controller.getWorld().getHeight() && 
-            (selectedTool.equals("ROAD") || selectedTool.equals("POWER_POLE"))) {
+            (selectedTool.equals("ROAD") || selectedTool.equals("POWER_POLE")) || selectedTool.equals("RESIDENTIAL")) {
             if (lastX != -1 && lastY != -1) {
                 drawLine(lastX, lastY, x, y);
             }

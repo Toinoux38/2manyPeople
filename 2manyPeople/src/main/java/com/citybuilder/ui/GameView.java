@@ -1,6 +1,6 @@
 package com.citybuilder.ui;
 
-import com.citybuilder.SimulationEngine;
+import com.citybuilder.controller.GameController;
 import com.citybuilder.model.*;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
@@ -11,39 +11,31 @@ import javafx.beans.binding.Bindings;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
+import javafx.geometry.Pos;
+import javafx.scene.text.Text;
 
-public class GameView {
-    private final World world;
+public class GameView implements WorldObserver {
+    private final GameController controller;
     private final GridPane gridPane;
     private final VBox root;
     private final ToolBar toolbar;
     private final HBox statsBar;
+    private final VBox notificationArea;
     private String selectedTool = "ROAD";
     private Rectangle[][] cells;
-    private final SimulationEngine simulationEngine;
     private int lastX = -1;
     private int lastY = -1;
-    private final Image grassTexture;
 
-    public GameView(World world, SimulationEngine simulationEngine) {
-        this.world = world;
-        this.simulationEngine = simulationEngine;
+    public GameView(GameController controller) {
+        this.controller = controller;
         this.gridPane = new GridPane();
         this.toolbar = createToolbar();
         this.statsBar = createStatsBar();
-        
-        // Créer un StackPane pour superposer la grille et l'image de fond
-        StackPane gameArea = new StackPane();
-        Image grassTexture = new Image("grass.png");
-        ImageView background = new ImageView(grassTexture);
-        background.setFitWidth(800);
-        background.setFitHeight(600);
-        gameArea.getChildren().addAll(background, gridPane);
+        this.notificationArea = createNotificationArea();
         
         // Créer le layout principal
-        this.root = new VBox(toolbar, statsBar, gameArea);
-        this.cells = new Rectangle[world.getWidth()][world.getHeight()];
-        this.grassTexture = new Image("grass.png");
+        this.root = new VBox(toolbar, statsBar, gridPane, notificationArea);
+        this.cells = new Rectangle[controller.getWorld().getWidth()][controller.getWorld().getHeight()];
         
         initializeGrid();
         setupGridInteraction();
@@ -67,11 +59,26 @@ public class GameView {
         Button powerPoleButton = new Button("Pylône Électrique");
         powerPoleButton.setOnAction(e -> selectedTool = "POWER_POLE");
         
+        Button policeStationButton = new Button("Commissariat");
+        policeStationButton.setOnAction(e -> selectedTool = "POLICE_STATION");
+        
+        Button fireStationButton = new Button("Caserne de Pompiers");
+        fireStationButton.setOnAction(e -> selectedTool = "FIRE_STATION");
+        
         Button bulldozerButton = new Button("Bulldozer");
         bulldozerButton.setOnAction(e -> selectedTool = "BULLDOZER");
         
-        toolbar.getItems().addAll(roadButton, residentialButton, industrialButton, 
-                                powerPlantButton, powerPoleButton, bulldozerButton);
+        Button undoButton = new Button("Annuler");
+        undoButton.setOnAction(e -> controller.undo());
+        
+        Button redoButton = new Button("Refaire");
+        redoButton.setOnAction(e -> controller.redo());
+        
+        toolbar.getItems().addAll(
+            roadButton, residentialButton, industrialButton, 
+            powerPlantButton, powerPoleButton, policeStationButton,
+            fireStationButton, bulldozerButton, undoButton, redoButton
+        );
         return toolbar;
     }
 
@@ -80,25 +87,42 @@ public class GameView {
         statsBar.setPadding(new javafx.geometry.Insets(5));
         
         Label populationLabel = new Label();
-        populationLabel.textProperty().bind(Bindings.concat("Population: ", simulationEngine.totalPopulationProperty()));
+        populationLabel.textProperty().bind(Bindings.concat("Population: ", controller.getSimulationEngine().totalPopulationProperty()));
         
         Label workersLabel = new Label();
-        workersLabel.textProperty().bind(Bindings.concat("Travailleurs: ", simulationEngine.totalWorkersProperty()));
+        workersLabel.textProperty().bind(Bindings.concat("Travailleurs: ", controller.getSimulationEngine().totalWorkersProperty()));
         
         Label satisfactionLabel = new Label();
-        satisfactionLabel.textProperty().bind(Bindings.concat("Satisfaction: ", simulationEngine.satisfactionRateProperty()));
+        satisfactionLabel.textProperty().bind(Bindings.concat("Satisfaction: ", controller.getSimulationEngine().satisfactionRateProperty()));
         
         statsBar.getChildren().addAll(populationLabel, workersLabel, satisfactionLabel);
         return statsBar;
     }
 
+    private VBox createNotificationArea() {
+        VBox notificationArea = new VBox(5);
+        notificationArea.setPadding(new javafx.geometry.Insets(5));
+        notificationArea.setAlignment(Pos.BOTTOM_LEFT);
+        return notificationArea;
+    }
+
+    public void showNotification(String message) {
+        Text notification = new Text(message);
+        notificationArea.getChildren().add(notification);
+        
+        // Supprimer la notification après 5 secondes
+        new javafx.animation.PauseTransition(javafx.util.Duration.seconds(5))
+            .setOnFinished(e -> notificationArea.getChildren().remove(notification))
+            .play();
+    }
+
     private void initializeGrid() {
         gridPane.setGridLinesVisible(true);
         
-        for (int x = 0; x < world.getWidth(); x++) {
-            for (int y = 0; y < world.getHeight(); y++) {
+        for (int x = 0; x < controller.getWorld().getWidth(); x++) {
+            for (int y = 0; y < controller.getWorld().getHeight(); y++) {
                 Rectangle cell = new Rectangle(20, 20);
-                cell.setFill(getColorForTile(world.getTile(x, y)));
+                cell.setFill(getColorForTile(controller.getWorld().getTile(x, y)));
                 cells[x][y] = cell;
                 gridPane.add(cell, x, y);
             }
@@ -115,7 +139,7 @@ public class GameView {
         int x = (int) (event.getX() / 20);
         int y = (int) (event.getY() / 20);
         
-        if (x >= 0 && x < world.getWidth() && y >= 0 && y < world.getHeight()) {
+        if (x >= 0 && x < controller.getWorld().getWidth() && y >= 0 && y < controller.getWorld().getHeight()) {
             lastX = x;
             lastY = y;
             handleTileClick(x, y);
@@ -126,10 +150,9 @@ public class GameView {
         int x = (int) (event.getX() / 20);
         int y = (int) (event.getY() / 20);
         
-        if (x >= 0 && x < world.getWidth() && y >= 0 && y < world.getHeight() && 
+        if (x >= 0 && x < controller.getWorld().getWidth() && y >= 0 && y < controller.getWorld().getHeight() && 
             (selectedTool.equals("ROAD") || selectedTool.equals("POWER_POLE"))) {
             if (lastX != -1 && lastY != -1) {
-                // Dessiner une ligne droite
                 drawLine(lastX, lastY, x, y);
             }
             lastX = x;
@@ -166,36 +189,20 @@ public class GameView {
 
     private void handleTileClick(int x, int y) {
         switch (selectedTool) {
-            case "ROAD":
-                world.placeTile(x, y, new Road(x, y));
-                break;
-            case "RESIDENTIAL":
-                world.placeTile(x, y, new ResidentialZone(x, y));
-                break;
-            case "INDUSTRIAL":
-                world.placeTile(x, y, new IndustrialZone(x, y));
-                break;
-            case "POWER_PLANT":
-                world.placeTile(x, y, new PowerPlant(x, y));
-                break;
-            case "POWER_POLE":
-                world.placeTile(x, y, new PowerPole(x, y));
-                break;
             case "BULLDOZER":
-                // Vérifier si la tuile est un bâtiment ou une route
-                Tile currentTile = world.getTile(x, y);
-                if (currentTile instanceof Building || currentTile instanceof Road) {
-                    world.removeTile(x, y);
-                }
+                controller.removeTile(x, y);
+                break;
+            default:
+                controller.placeTile(x, y, selectedTool);
                 break;
         }
         updateGrid();
     }
 
-    private void updateGrid() {
-        for (int x = 0; x < world.getWidth(); x++) {
-            for (int y = 0; y < world.getHeight(); y++) {
-                cells[x][y].setFill(getColorForTile(world.getTile(x, y)));
+    public void updateGrid() {
+        for (int x = 0; x < controller.getWorld().getWidth(); x++) {
+            for (int y = 0; y < controller.getWorld().getHeight(); y++) {
+                cells[x][y].setFill(getColorForTile(controller.getWorld().getTile(x, y)));
             }
         }
     }
@@ -212,8 +219,11 @@ public class GameView {
                 return Color.YELLOW;
             case "POWER_POLE":
                 return Color.ORANGE;
+            case "POLICE_STATION":
+                return Color.DARKBLUE;
+            case "FIRE_STATION":
+                return Color.DARKRED;
             case "EMPTY":
-                // Utiliser une couleur verte pour simuler l'herbe
                 return Color.rgb(34, 139, 34); // Forest Green
             default:
                 return Color.BLACK;
@@ -222,5 +232,21 @@ public class GameView {
 
     public VBox getRoot() {
         return root;
+    }
+
+    @Override
+    public void onWorldEvent(WorldEvent event) {
+        switch (event.getType()) {
+            case FIRE_STARTED:
+                showNotification("Un incendie s'est déclaré !");
+                break;
+            case CRIME_STARTED:
+                showNotification("La criminalité augmente dans la zone !");
+                break;
+            case POWER_OUTAGE_STARTED:
+                showNotification("Coupure de courant !");
+                break;
+        }
+        updateGrid();
     }
 } 

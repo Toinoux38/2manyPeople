@@ -8,34 +8,27 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 
 public class Main extends Application {
-    private static final int WORLD_WIDTH = 40;
-    private static final int WORLD_HEIGHT = 30;
-
     @Override
     public void start(Stage primaryStage) {
-        // Créer le monde
-        World world = new World(WORLD_WIDTH, WORLD_HEIGHT);
-        
-        // Créer la vue
-        GameView view = new GameView(null); // Le contrôleur sera passé après sa création
+        // Créer le monde (modèle)
+        World world = new World(50, 50); // 50x50 grid
         
         // Créer le contrôleur
-        GameController controller = new GameController(world, view);
+        GameController controller = new GameController(world);
         
-        // Mettre à jour la vue avec le contrôleur
-        view = new GameView(controller);
+        // Créer la vue
+        GameView gameView = new GameView(controller);
         
         // Configurer la scène
-        Scene scene = new Scene(view.getRoot(), 800, 600);
-        primaryStage.setTitle("2manyPeople - City Builder");
+        Scene scene = new Scene(gameView.getRoot(), 1200, 800);
+        
+        // Configurer la fenêtre
+        primaryStage.setTitle("City Builder");
         primaryStage.setScene(scene);
         primaryStage.show();
-        
-        // Démarrer la simulation
-        controller.start();
     }
 
     public static void main(String[] args) {
         launch(args);
     }
-} 
+}

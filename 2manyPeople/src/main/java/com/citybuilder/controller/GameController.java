@@ -1,157 +1,67 @@
 package com.citybuilder.controller;
 
-import com.citybuilder.model.*;
-import com.citybuilder.ui.GameView;
-import javafx.animation.AnimationTimer;
+import com.citybuilder.model.Tile;
+import com.citybuilder.model.TileType;
+import com.citybuilder.model.World;
+import com.citybuilder.model.WorldEvent;
+import com.citybuilder.model.WorldObserver;
 
-import java.io.*;
-import java.util.Stack;
+import java.util.ArrayList;
+import java.util.List;
 
-public class GameController implements WorldObserver {
+public class GameController {
     private final World world;
-    private final GameView view;
-    private final SimulationEngine simulationEngine;
-    private final Stack<WorldMemento> undoStack;
-    private final Stack<WorldMemento> redoStack;
-    private final AnimationTimer gameLoop;
+    private final List<WorldObserver> observers;
+    private String selectedTool;
 
-    public GameController(World world, GameView view) {
+    public GameController(World world) {
         this.world = world;
-        this.view = view;
-        this.simulationEngine = new SimulationEngine(world);
-        this.undoStack = new Stack<>();
-        this.redoStack = new Stack<>();
-        
-        // Enregistrer le contrôleur comme observateur du monde
-        world.addObserver(this);
-        
-        // Initialiser la boucle de jeu
-        this.gameLoop = new AnimationTimer() {
-            private long lastUpdate = 0;
-            
-            @Override
-            public void handle(long now) {
-                if (now - lastUpdate >= 1_000_000_000) { // Mise à jour chaque seconde
-                    update();
-                    lastUpdate = now;
-                }
-            }
-        };
-    }
-
-    public void start() {
-        gameLoop.start();
-    }
-
-    public void stop() {
-        gameLoop.stop();
-    }
-
-    private void update() {
-        // Mettre à jour la simulation
-        simulationEngine.update();
-        
-        // Mettre à jour les événements
-        for (Event event : world.getActiveEvents()) {
-            event.update(world);
-            if (!event.isActive()) {
-                world.removeEvent(event);
-            }
-        }
-        
-        // Mettre à jour la vue
-        view.update();
-    }
-
-    public void placeTile(int x, int y, String type) {
-        saveState();
-        Building building = BuildingFactory.createBuilding(type, x, y);
-        world.placeTile(x, y, building);
-    }
-
-    public void removeTile(int x, int y) {
-        saveState();
-        world.removeTile(x, y);
-    }
-
-    private void saveState() {
-        undoStack.push(new WorldMemento(world));
-        redoStack.clear();
-    }
-
-    public void undo() {
-        if (!undoStack.isEmpty()) {
-            redoStack.push(new WorldMemento(world));
-            WorldMemento memento = undoStack.pop();
-            World restoredWorld = memento.restore();
-            restoreWorld(restoredWorld);
-        }
-    }
-
-    public void redo() {
-        if (!redoStack.isEmpty()) {
-            undoStack.push(new WorldMemento(world));
-            WorldMemento memento = redoStack.pop();
-            World restoredWorld = memento.restore();
-            restoreWorld(restoredWorld);
-        }
-    }
-
-    private void restoreWorld(World restoredWorld) {
-        // Copier l'état du monde restauré dans le monde actuel
-        for (int x = 0; x < world.getWidth(); x++) {
-            for (int y = 0; y < world.getHeight(); y++) {
-                world.removeTile(x, y);
-                Tile tile = restoredWorld.getTile(x, y);
-                if (!(tile instanceof EmptyTile)) {
-                    world.placeTile(x, y, tile);
-                }
-            }
-        }
-    }
-
-    public void saveGame(String filename) {
-        try (ObjectOutputStream out = new ObjectOutputStream(new FileOutputStream(filename))) {
-            out.writeObject(new WorldMemento(world));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public void loadGame(String filename) {
-        try (ObjectInputStream in = new ObjectInputStream(new FileInputStream(filename))) {
-            WorldMemento memento = (WorldMemento) in.readObject();
-            World restoredWorld = memento.restore();
-            restoreWorld(restoredWorld);
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
-        }
-    }
-
-    @Override
-    public void onWorldEvent(WorldEvent event) {
-        switch (event.getType()) {
-            case FIRE_STARTED:
-                view.showNotification("Un incendie s'est déclaré !");
-                break;
-            case CRIME_STARTED:
-                view.showNotification("La criminalité augmente dans la zone !");
-                break;
-            case POWER_OUTAGE_STARTED:
-                view.showNotification("Coupure de courant !");
-                break;
-        }
+        this.observers = new ArrayList<>();
+        this.selectedTool = "ROAD";
     }
 
     public World getWorld() {
         return world;
     }
 
-    public SimulationEngine getSimulationEngine() {
-        return simulationEngine;
+    public void addObserver(WorldObserver observer) {
+        observers.add(observer);
     }
 
-    public GameView getView() {
-        return view;
+    public void removeObserver(WorldObserver observer) {
+        observers.remove(observer);
+    }
+
+    public void placeTile(int x, int y, String toolType) {
+        TileType type = TileType.valueOf(toolType);
+        Tile tile = new Tile(x, y, type);
+        world.setTile(x, y, tile);
+        notifyObservers();
+    }
+
+    public void removeTile(int x, int y) {
+        world.removeTile(x, y);
+        notifyObservers();
+    }
+
+    public void setSelectedTool(String tool) {
+        this.selectedTool = tool;
+    }
+
+    public String getSelectedTool() {
+        return selectedTool;
+    }
+
+    private void notifyObservers() {
+        for (WorldObserver observer : observers) {
+            observer.update();
+        }
+    }
+
+    public void triggerEvent(WorldEvent event) {
+        world.addEvent(event);
+        for (WorldObserver observer : observers) {
+            observer.onWorldEvent(event);
+        }
     }
 } 

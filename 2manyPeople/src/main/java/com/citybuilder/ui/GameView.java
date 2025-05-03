@@ -15,10 +15,6 @@ import javafx.geometry.Pos;
 import javafx.scene.text.Text;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.layout.HBox;
-import javafx.scene.layout.VBox;
 
 public class GameView implements WorldObserver {
     private final GameController controller;
@@ -45,6 +41,9 @@ public class GameView implements WorldObserver {
         
         initializeGrid();
         setupGridInteraction();
+        
+        // S'enregistrer comme observateur
+        controller.addObserver(this);
     }
 
     private ToolBar createToolbar() {
@@ -74,16 +73,10 @@ public class GameView implements WorldObserver {
         Button bulldozerButton = new Button("Bulldozer");
         bulldozerButton.setOnAction(e -> selectedTool = "BULLDOZER");
         
-        Button undoButton = new Button("Annuler");
-        undoButton.setOnAction(e -> controller.undo());
-        
-        Button redoButton = new Button("Refaire");
-        redoButton.setOnAction(e -> controller.redo());
-        
         toolbar.getItems().addAll(
             roadButton, residentialButton, industrialButton, 
             powerPlantButton, powerPoleButton, policeStationButton,
-            fireStationButton, bulldozerButton, undoButton, redoButton
+            fireStationButton, bulldozerButton
         );
         return toolbar;
     }
@@ -93,13 +86,13 @@ public class GameView implements WorldObserver {
         statsBar.setPadding(new javafx.geometry.Insets(5));
         
         Label populationLabel = new Label();
-        populationLabel.textProperty().bind(Bindings.concat("Population: ", controller.getSimulationEngine().totalPopulationProperty()));
+        populationLabel.textProperty().bind(Bindings.concat("Population: ", controller.getWorld().totalPopulationProperty()));
         
         Label workersLabel = new Label();
-        workersLabel.textProperty().bind(Bindings.concat("Travailleurs: ", controller.getSimulationEngine().totalWorkersProperty()));
+        workersLabel.textProperty().bind(Bindings.concat("Travailleurs: ", controller.getWorld().totalWorkersProperty()));
         
         Label satisfactionLabel = new Label();
-        satisfactionLabel.textProperty().bind(Bindings.concat("Satisfaction: ", controller.getSimulationEngine().satisfactionRateProperty()));
+        satisfactionLabel.textProperty().bind(Bindings.concat("Satisfaction: ", controller.getWorld().satisfactionRateProperty()));
         
         statsBar.getChildren().addAll(populationLabel, workersLabel, satisfactionLabel);
         return statsBar;
@@ -194,42 +187,32 @@ public class GameView implements WorldObserver {
     }
 
     private void handleTileClick(int x, int y) {
-        switch (selectedTool) {
-            case "BULLDOZER":
-                controller.removeTile(x, y);
-                break;
-            default:
-                controller.placeTile(x, y, selectedTool);
-                break;
-        }
-        updateGrid();
-    }
-
-    public void updateGrid() {
-        for (int x = 0; x < controller.getWorld().getWidth(); x++) {
-            for (int y = 0; y < controller.getWorld().getHeight(); y++) {
-                cells[x][y].setFill(getColorForTile(controller.getWorld().getTile(x, y)));
-            }
+        if (selectedTool.equals("BULLDOZER")) {
+            controller.removeTile(x, y);
+        } else {
+            controller.placeTile(x, y, selectedTool);
         }
     }
 
     private Color getColorForTile(Tile tile) {
+        if (tile == null) return Color.BLACK;
+        
         switch (tile.getType()) {
-            case "ROAD":
+            case ROAD:
                 return Color.GRAY;
-            case "RESIDENTIAL":
+            case RESIDENTIAL:
                 return Color.BLUE;
-            case "INDUSTRIAL":
+            case INDUSTRIAL:
                 return Color.RED;
-            case "POWER_PLANT":
+            case POWER_PLANT:
                 return Color.YELLOW;
-            case "POWER_POLE":
+            case POWER_POLE:
                 return Color.ORANGE;
-            case "POLICE_STATION":
+            case POLICE_STATION:
                 return Color.DARKBLUE;
-            case "FIRE_STATION":
+            case FIRE_STATION:
                 return Color.DARKRED;
-            case "EMPTY":
+            case EMPTY:
                 return Color.rgb(34, 139, 34); // Forest Green
             default:
                 return Color.BLACK;
@@ -242,21 +225,15 @@ public class GameView implements WorldObserver {
 
     @Override
     public void onWorldEvent(WorldEvent event) {
-        switch (event.getType()) {
-            case FIRE_STARTED:
-                showNotification("Un incendie s'est déclaré !");
-                break;
-            case CRIME_STARTED:
-                showNotification("La criminalité augmente dans la zone !");
-                break;
-            case POWER_OUTAGE_STARTED:
-                showNotification("Coupure de courant !");
-                break;
-        }
-        updateGrid();
+        showNotification(event.getMessage());
     }
 
+    @Override
     public void update() {
-        updateGrid();
+        for (int x = 0; x < controller.getWorld().getWidth(); x++) {
+            for (int y = 0; y < controller.getWorld().getHeight(); y++) {
+                cells[x][y].setFill(getColorForTile(controller.getWorld().getTile(x, y)));
+            }
+        }
     }
 } 

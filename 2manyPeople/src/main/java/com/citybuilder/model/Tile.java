@@ -1,14 +1,20 @@
 package com.citybuilder.model;
 
-public abstract class Tile {
-    protected final int x;
-    protected final int y;
-    protected String type;
+public class Tile {
+    private final int x;
+    private final int y;
+    private final TileType type;
+    private boolean powered;
+    private int population;
+    private int workers;
 
-    public Tile(int x, int y, String type) {
+    public Tile(int x, int y, TileType type) {
         this.x = x;
         this.y = y;
         this.type = type;
+        this.powered = false;
+        this.population = 0;
+        this.workers = 0;
     }
 
     public int getX() {
@@ -19,9 +25,31 @@ public abstract class Tile {
         return y;
     }
 
-    public String getType() {
+    public TileType getType() {
         return type;
     }
 
-    public abstract void update();
+    public boolean isPowered() {
+        return powered;
+    }
+
+    public void setPowered(boolean powered) {
+        this.powered = powered;
+    }
+
+    public int getPopulation() {
+        return population;
+    }
+
+    public void setPopulation(int population) {
+        this.population = population;
+    }
+
+    public int getWorkers() {
+        return workers;
+    }
+
+    public void setWorkers(int workers) {
+        this.workers = workers;
+    }
 } 

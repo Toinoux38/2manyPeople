@@ -1,19 +1,39 @@
 package com.citybuilder.model;
 
 public class WorldEvent {
-    private final WorldEventType type;
-    private final Object source;
-
-    public WorldEvent(WorldEventType type, Object source) {
-        this.type = type;
-        this.source = source;
+    public enum EventType {
+        FIRE_STARTED,
+        CRIME_STARTED,
+        POWER_OUTAGE,
+        POPULATION_GROWTH,
+        POPULATION_DECLINE
     }
 
-    public WorldEventType getType() {
+    private final EventType type;
+    private final String message;
+    private final int x;
+    private final int y;
+
+    public WorldEvent(EventType type, String message, int x, int y) {
+        this.type = type;
+        this.message = message;
+        this.x = x;
+        this.y = y;
+    }
+
+    public EventType getType() {
         return type;
     }
 
-    public Object getSource() {
-        return source;
+    public String getMessage() {
+        return message;
+    }
+
+    public int getX() {
+        return x;
+    }
+
+    public int getY() {
+        return y;
     }
 } 

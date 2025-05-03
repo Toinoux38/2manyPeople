@@ -1,6 +1,7 @@
 plugins {
     id("java")
     id("application")
+    id("org.openjfx.javafxplugin") version "0.1.0"
 }
 
 group = "com.citybuilder"
@@ -10,9 +11,12 @@ repositories {
     mavenCentral()
 }
 
+javafx {
+    version = "22"
+    modules = listOf("javafx.controls", "javafx.fxml")
+}
+
 dependencies {
-    implementation("org.openjfx:javafx-controls:17.0.2")
-    implementation("org.openjfx:javafx-fxml:17.0.2")
     testImplementation(platform("org.junit:junit-bom:5.9.1"))
     testImplementation("org.junit.jupiter:junit-jupiter")
 }

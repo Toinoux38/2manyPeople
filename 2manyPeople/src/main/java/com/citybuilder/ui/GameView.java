@@ -210,7 +210,7 @@ public class GameView implements Subscriber<GameEvent> {
         if (cell == null) return Color.BLACK;
         
         // Pour l'instant, on utilise une couleur simple
-        return cell.isWater() ? Color.BLUE : Color.rgb(34, 139, 34); // Forest Green
+        return cell.getIsWater() ? Color.BLUE : Color.rgb(34, 139, 34); // Forest Green
     }
 
     public VBox getRoot() {

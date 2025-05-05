@@ -2,80 +2,82 @@ package com.citybuilder.ui;
 
 import com.citybuilder.factory.GameStartupFactory;
 import com.citybuilder.modelBis.City;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.control.*;
+import javafx.scene.layout.GridPane;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
 
-import javax.swing.*;
-import java.awt.*;
-
-public class GameStartupDialog extends JDialog {
+public class GameStartupDialog {
     private final GameStartupFactory factory;
     private City createdCity;
-    private JTextField nameField;
-    private JSpinner hazardRateSpinner;
+    private final Stage dialogStage;
 
-    public GameStartupDialog(Frame parent, GameStartupFactory factory) {
-        super(parent, "Nouvelle Ville", true);
+    public GameStartupDialog(Stage parent, GameStartupFactory factory) {
         this.factory = factory;
+        this.dialogStage = new Stage();
+        this.dialogStage.initModality(Modality.APPLICATION_MODAL);
+        this.dialogStage.initOwner(parent);
+        this.dialogStage.setTitle("Nouvelle Ville");
+        
         setupUI();
     }
 
     private void setupUI() {
-        setLayout(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(5, 5, 5, 5);
-        gbc.fill = GridBagConstraints.HORIZONTAL;
+        GridPane grid = new GridPane();
+        grid.setAlignment(Pos.CENTER);
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new Insets(20));
 
         // Nom de la ville
-        gbc.gridx = 0;
-        gbc.gridy = 0;
-        add(new JLabel("Nom de la ville:"), gbc);
-
-        gbc.gridx = 1;
-        nameField = new JTextField(20);
-        add(nameField, gbc);
+        Label nameLabel = new Label("Nom de la ville:");
+        TextField nameField = new TextField();
+        grid.add(nameLabel, 0, 0);
+        grid.add(nameField, 1, 0);
 
         // Taux de risque
-        gbc.gridx = 0;
-        gbc.gridy = 1;
-        add(new JLabel("Taux de risque (0.0 - 1.0):"), gbc);
-
-        gbc.gridx = 1;
-        SpinnerNumberModel model = new SpinnerNumberModel(0.1, 0.0, 1.0, 0.1);
-        hazardRateSpinner = new JSpinner(model);
-        add(hazardRateSpinner, gbc);
+        Label hazardLabel = new Label("Taux de risque (0.0 - 1.0):");
+        Spinner<Double> hazardSpinner = new Spinner<>(
+            new SpinnerValueFactory.DoubleSpinnerValueFactory(0.0, 1.0, 0.1, 0.1)
+        );
+        grid.add(hazardLabel, 0, 1);
+        grid.add(hazardSpinner, 1, 1);
 
         // Boutons
-        JPanel buttonPanel = new JPanel();
-        JButton createButton = new JButton("Créer");
-        JButton cancelButton = new JButton("Annuler");
+        ButtonBar buttonBar = new ButtonBar();
+        Button createButton = new Button("Créer");
+        Button cancelButton = new Button("Annuler");
+        buttonBar.getButtons().addAll(createButton, cancelButton);
+        grid.add(buttonBar, 0, 2, 2, 1);
 
-        createButton.addActionListener(e -> createCity());
-        cancelButton.addActionListener(e -> dispose());
+        // Actions des boutons
+        createButton.setOnAction(e -> {
+            String name = nameField.getText().trim();
+            if (name.isEmpty()) {
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Erreur");
+                alert.setHeaderText(null);
+                alert.setContentText("Veuillez entrer un nom de ville");
+                alert.showAndWait();
+                return;
+            }
 
-        buttonPanel.add(createButton);
-        buttonPanel.add(cancelButton);
+            double hazardRate = hazardSpinner.getValue();
+            createdCity = factory.createCity(name, (float) hazardRate);
+            dialogStage.close();
+        });
 
-        gbc.gridx = 0;
-        gbc.gridy = 2;
-        gbc.gridwidth = 2;
-        add(buttonPanel, gbc);
+        cancelButton.setOnAction(e -> dialogStage.close());
 
-        pack();
-        setLocationRelativeTo(getParent());
+        Scene scene = new Scene(grid);
+        dialogStage.setScene(scene);
     }
 
-    private void createCity() {
-        String name = nameField.getText().trim();
-        if (name.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Veuillez entrer un nom de ville", "Erreur", JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-
-        float hazardRate = ((Number) hazardRateSpinner.getValue()).floatValue();
-        createdCity = factory.createCity(name, hazardRate);
-        dispose();
-    }
-
-    public City getCreatedCity() {
+    public City showAndWait() {
+        dialogStage.showAndWait();
         return createdCity;
     }
 } 

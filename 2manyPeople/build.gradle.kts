@@ -19,6 +19,9 @@ javafx {
 dependencies {
     testImplementation(platform("org.junit:junit-bom:5.9.1"))
     testImplementation("org.junit.jupiter:junit-jupiter")
+    implementation("com.google.dagger:dagger:2.45")
+    annotationProcessor("com.google.dagger:dagger-compiler:2.45")
+
 }
 
 application {

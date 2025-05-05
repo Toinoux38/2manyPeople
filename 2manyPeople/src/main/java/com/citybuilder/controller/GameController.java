@@ -2,6 +2,8 @@ package com.citybuilder.controller;
 
 import com.citybuilder.modelBis.Cell;
 import com.citybuilder.modelBis.City;
+import com.citybuilder.modelBis.events.CellPlacedEvent;
+import com.citybuilder.modelBis.events.CellRemovedEvent;
 import com.citybuilder.modelBis.events.GameEvent;
 import com.citybuilder.Sub;
 
@@ -33,12 +35,12 @@ public class GameController implements Publisher<GameEvent> {
     public void placeCell(int x, int y, String toolType) {
         Cell cell = new Cell(false, new java.awt.Point(x, y));
         city.getMap()[x][y] = cell;
-        notifySubscribers(new GameEvent("CELL_PLACED", x, y));
+        notifySubscribers(new CellPlacedEvent(x, y));
     }
 
     public void removeCell(int x, int y) {
         city.getMap()[x][y] = null;
-        notifySubscribers(new GameEvent("CELL_REMOVED", x, y));
+        notifySubscribers(new CellRemovedEvent(x, y));
     }
 
     public void setSelectedTool(String tool) {

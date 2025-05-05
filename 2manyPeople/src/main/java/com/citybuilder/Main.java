@@ -7,13 +7,10 @@ import com.citybuilder.modelBis.City;
 import com.citybuilder.ui.GameStartupDialog;
 import com.citybuilder.ui.GameView;
 import javafx.application.Application;
-import javafx.embed.swing.SwingNode;
 import javafx.scene.Scene;
-import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
 import javax.swing.*;
-import java.awt.*;
 
 public class Main extends Application {
     private GameStartupFactory gameStartupFactory;

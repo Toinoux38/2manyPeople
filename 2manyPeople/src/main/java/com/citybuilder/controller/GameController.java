@@ -71,4 +71,3 @@ public class GameController implements Publisher<GameEvent> {
         return city.getMoney();
     }
 } 
-} 

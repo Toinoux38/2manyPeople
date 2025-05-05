@@ -1,7 +1,9 @@
 package com.citybuilder.ui;
 
 import com.citybuilder.controller.GameController;
-import com.citybuilder.model.*;
+import com.citybuilder.modelBis.Cell;
+import com.citybuilder.modelBis.events.GameEvent;
+import com.citybuilder.Sub;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
@@ -18,7 +20,9 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.animation.PauseTransition;
 import javafx.util.Duration;
 
-public class GameView implements WorldObserver {
+import java.util.concurrent.Flow.Subscriber;
+
+public class GameView implements Subscriber<GameEvent> {
     private final GameController controller;
     private final GridPane gridPane;
     private final VBox root;
@@ -39,13 +43,16 @@ public class GameView implements WorldObserver {
         
         // Créer le layout principal
         this.root = new VBox(toolbar, statsBar, gridPane, notificationArea);
-        this.cells = new Rectangle[controller.getWorld().getWidth()][controller.getWorld().getHeight()];
+        
+        // Initialiser la grille avec les dimensions de la ville
+        Cell[][] map = controller.getCity().getMap();
+        this.cells = new Rectangle[map.length][map[0].length];
         
         initializeGrid();
         setupGridInteraction();
         
-        // S'enregistrer comme observateur
-        controller.addObserver(this);
+        // S'enregistrer comme subscriber
+        controller.subscribe(this);
     }
 
     private ToolBar createToolbar() {
@@ -87,16 +94,16 @@ public class GameView implements WorldObserver {
         HBox statsBar = new HBox(10);
         statsBar.setPadding(new javafx.geometry.Insets(5));
         
-        Label populationLabel = new Label();
-        populationLabel.textProperty().bind(Bindings.concat("Population: ", controller.getWorld().totalPopulationProperty()));
+        Label cityNameLabel = new Label();
+        cityNameLabel.textProperty().bind(Bindings.concat("Ville: ", controller.getCityName()));
         
-        Label workersLabel = new Label();
-        workersLabel.textProperty().bind(Bindings.concat("Travailleurs: ", controller.getWorld().totalWorkersProperty()));
+        Label moneyLabel = new Label();
+        moneyLabel.textProperty().bind(Bindings.concat("Argent: ", controller.getMoney()));
         
-        Label satisfactionLabel = new Label();
-        satisfactionLabel.textProperty().bind(Bindings.concat("Satisfaction: ", controller.getWorld().satisfactionRateProperty()));
+        Label hazardRateLabel = new Label();
+        hazardRateLabel.textProperty().bind(Bindings.concat("Taux de risque: ", controller.getHazardRate()));
         
-        statsBar.getChildren().addAll(populationLabel, workersLabel, satisfactionLabel);
+        statsBar.getChildren().addAll(cityNameLabel, moneyLabel, hazardRateLabel);
         return statsBar;
     }
 
@@ -119,11 +126,12 @@ public class GameView implements WorldObserver {
 
     private void initializeGrid() {
         gridPane.setGridLinesVisible(true);
+        Cell[][] map = controller.getCity().getMap();
         
-        for (int x = 0; x < controller.getWorld().getWidth(); x++) {
-            for (int y = 0; y < controller.getWorld().getHeight(); y++) {
+        for (int x = 0; x < map.length; x++) {
+            for (int y = 0; y < map[0].length; y++) {
                 Rectangle cell = new Rectangle(20, 20);
-                cell.setFill(getColorForTile(controller.getWorld().getTile(x, y)));
+                cell.setFill(getColorForCell(map[x][y]));
                 cells[x][y] = cell;
                 gridPane.add(cell, x, y);
             }
@@ -140,10 +148,11 @@ public class GameView implements WorldObserver {
         int x = (int) (event.getX() / 20);
         int y = (int) (event.getY() / 20);
         
-        if (x >= 0 && x < controller.getWorld().getWidth() && y >= 0 && y < controller.getWorld().getHeight()) {
+        Cell[][] map = controller.getCity().getMap();
+        if (x >= 0 && x < map.length && y >= 0 && y < map[0].length) {
             lastX = x;
             lastY = y;
-            handleTileClick(x, y);
+            handleCellClick(x, y);
         }
     }
 
@@ -151,8 +160,9 @@ public class GameView implements WorldObserver {
         int x = (int) (event.getX() / 20);
         int y = (int) (event.getY() / 20);
         
-        if (x >= 0 && x < controller.getWorld().getWidth() && y >= 0 && y < controller.getWorld().getHeight() && 
-            (selectedTool.equals("ROAD") || selectedTool.equals("POWER_POLE")) || selectedTool.equals("RESIDENTIAL")) {
+        Cell[][] map = controller.getCity().getMap();
+        if (x >= 0 && x < map.length && y >= 0 && y < map[0].length && 
+            (selectedTool.equals("ROAD") || selectedTool.equals("POWER_POLE") || selectedTool.equals("RESIDENTIAL"))) {
             if (lastX != -1 && lastY != -1) {
                 drawLine(lastX, lastY, x, y);
             }
@@ -174,7 +184,7 @@ public class GameView implements WorldObserver {
         int err = dx - dy;
 
         while (true) {
-            handleTileClick(x1, y1);
+            handleCellClick(x1, y1);
             if (x1 == x2 && y1 == y2) break;
             int e2 = 2 * err;
             if (e2 > -dy) {
@@ -188,37 +198,19 @@ public class GameView implements WorldObserver {
         }
     }
 
-    private void handleTileClick(int x, int y) {
+    private void handleCellClick(int x, int y) {
         if (selectedTool.equals("BULLDOZER")) {
-            controller.removeTile(x, y);
+            controller.removeCell(x, y);
         } else {
-            controller.placeTile(x, y, selectedTool);
+            controller.placeCell(x, y, selectedTool);
         }
     }
 
-    private Color getColorForTile(Tile tile) {
-        if (tile == null) return Color.BLACK;
+    private Color getColorForCell(Cell cell) {
+        if (cell == null) return Color.BLACK;
         
-        switch (tile.getType()) {
-            case ROAD:
-                return Color.GRAY;
-            case RESIDENTIAL:
-                return Color.BLUE;
-            case INDUSTRIAL:
-                return Color.RED;
-            case POWER_PLANT:
-                return Color.YELLOW;
-            case POWER_POLE:
-                return Color.ORANGE;
-            case POLICE_STATION:
-                return Color.DARKBLUE;
-            case FIRE_STATION:
-                return Color.DARKRED;
-            case EMPTY:
-                return Color.rgb(34, 139, 34); // Forest Green
-            default:
-                return Color.BLACK;
-        }
+        // Pour l'instant, on utilise une couleur simple
+        return cell.isWater() ? Color.BLUE : Color.rgb(34, 139, 34); // Forest Green
     }
 
     public VBox getRoot() {
@@ -226,16 +218,29 @@ public class GameView implements WorldObserver {
     }
 
     @Override
-    public void onWorldEvent(WorldEvent event) {
-        showNotification(event.getMessage());
+    public void onNext(GameEvent event) {
+        // Mettre à jour la vue en fonction de l'événement
+        Cell[][] map = controller.getCity().getMap();
+        for (int x = 0; x < map.length; x++) {
+            for (int y = 0; y < map[0].length; y++) {
+                cells[x][y].setFill(getColorForCell(map[x][y]));
+            }
+        }
+        showNotification("Événement: " + event.getType());
     }
 
     @Override
-    public void update() {
-        for (int x = 0; x < controller.getWorld().getWidth(); x++) {
-            for (int y = 0; y < controller.getWorld().getHeight(); y++) {
-                cells[x][y].setFill(getColorForTile(controller.getWorld().getTile(x, y)));
-            }
-        }
+    public void onSubscribe(java.util.concurrent.Flow.Subscription subscription) {
+        subscription.request(Long.MAX_VALUE);
+    }
+
+    @Override
+    public void onError(Throwable throwable) {
+        showNotification("Erreur: " + throwable.getMessage());
+    }
+
+    @Override
+    public void onComplete() {
+        showNotification("Simulation terminée");
     }
 } 

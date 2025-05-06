@@ -1,8 +1,7 @@
 // 2ManyPeople - 2025 - youmix27 & toinoux38
 package com.citybuilder;
 
-import com.citybuilder.di.DaggerGameComponent;
-import com.citybuilder.di.GameComponent;
+import com.citybuilder.factory.DefaultGameStartupFactory;
 import com.citybuilder.factory.GameStartupFactory;
 import com.citybuilder.modelBis.City;
 import com.citybuilder.service.GameStateService;
@@ -12,19 +11,14 @@ import javafx.scene.Scene;
 import javafx.stage.Stage;
 
 public class Main extends Application {
-    private GameComponent gameComponent;
-    private GameStartupFactory gameStartupFactory;
-    private GameStateService gameStateService;
-
     @Override
     public void start(Stage primaryStage) {
-        // Initialiser Dagger
-        gameComponent = DaggerGameComponent.create();
-        gameStartupFactory = gameComponent.gameStartupFactory();
-        gameStateService = gameComponent.gameStateService();
+        // Créer les services
+        GameStartupFactory gameStartupFactory = new DefaultGameStartupFactory();
+        GameStateService gameStateService = new GameStateService();
 
         // Créer la ville via la factory
-        City city = gameStartupFactory.createCity(primaryStage);
+        City city = gameStartupFactory.createCity("Ma Ville", 0.1f);
         if (city == null) {
             System.exit(0);
             return;

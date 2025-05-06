@@ -21,8 +21,8 @@ dependencies {
     testImplementation("org.junit.jupiter:junit-jupiter")
     implementation("com.google.dagger:dagger:2.45")
     annotationProcessor("com.google.dagger:dagger-compiler:2.45")
-
 }
+
 
 application {
     mainClass.set("com.citybuilder.Main")

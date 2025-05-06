@@ -29,7 +29,6 @@ public class GameView extends BorderPane implements Subscriber<GameEvent> {
     private final GameStateService gameStateService;
     private CellType selectedTool = CellType.ROAD;
     private final GridPane gridPane;
-    private final VBox root;
     private final ToolBar toolbar;
     private final HBox statsBar;
     private final VBox notificationArea;
@@ -64,11 +63,6 @@ public class GameView extends BorderPane implements Subscriber<GameEvent> {
         this.statsBar = createStatsBar();
         this.notificationArea = createNotificationArea();
         
-        // Créer le layout principal
-        this.root = new VBox(10); // 10 pixels d'espacement
-        this.root.setPadding(new Insets(10));
-        this.root.setMinSize(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT);
-        
         // Initialiser la grille avec les dimensions de la ville
         Cell[][] map = city.getMap();
         this.cells = new Rectangle[map.length][map[0].length];
@@ -88,15 +82,18 @@ public class GameView extends BorderPane implements Subscriber<GameEvent> {
         gridPane.setPadding(new Insets(10));
         gridPane.setGridLinesVisible(true);
         
-        // Ajouter les composants à la vue
+        // Configurer les contraintes de redimensionnement
+        HBox.setHgrow(gridPane, Priority.ALWAYS);
+        VBox.setVgrow(gridPane, Priority.ALWAYS);
+        
+        // Ajouter les composants au BorderPane
         setTop(toolbar);
         setLeft(leftPanel);
         setCenter(gridPane);
         setBottom(notificationArea);
         
-        // Configurer les contraintes de redimensionnement
-        HBox.setHgrow(gridPane, Priority.ALWAYS);
-        VBox.setVgrow(gridPane, Priority.ALWAYS);
+        // Définir la taille minimale
+        setMinSize(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT);
         
         initializeGrid();
         setupGridInteraction();
@@ -316,10 +313,6 @@ public class GameView extends BorderPane implements Subscriber<GameEvent> {
             }
         }
         return count > 0 ? total / count : 0;
-    }
-
-    public VBox getRoot() {
-        return root;
     }
 
     @Override

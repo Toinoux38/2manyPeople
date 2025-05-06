@@ -34,8 +34,8 @@ public class Main extends Application {
         // Créer la vue du jeu
         GameView gameView = new GameView(city, gameComponent.getGameStateService());
         
-        // Créer la scène
-        Scene scene = new Scene(gameView.getRoot());
+        // Créer la scène avec GameView comme racine
+        Scene scene = new Scene(gameView);
         
         // Configurer la fenêtre principale
         primaryStage.setTitle("City Builder - " + city.getName());

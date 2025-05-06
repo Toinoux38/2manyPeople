@@ -17,13 +17,13 @@ import java.util.concurrent.Flow.Subscriber;
 public class GameController implements Publisher<GameEvent> {
     private final City city;
     private final List<Subscriber<? super GameEvent>> subscribers;
-    private String selectedTool;
+    private CellType selectedTool;
     private final GameStateService gameStateService;
 
     public GameController(City city, GameStateService gameStateService) {
         this.city = city;
         this.subscribers = new ArrayList<>();
-        this.selectedTool = "ROAD";
+        this.selectedTool = CellType.ROAD;
         this.gameStateService = gameStateService;
     }
 
@@ -37,7 +37,7 @@ public class GameController implements Publisher<GameEvent> {
     }
 
     public void placeCell(int x, int y) {
-        Cell cell = city.getCell(x, y);
+        Cell cell = city.getMap()[x][y];
         if (cell != null && gameStateService.purchase(selectedTool, cell)) {
             cell.setType(selectedTool);
             
@@ -63,9 +63,11 @@ public class GameController implements Publisher<GameEvent> {
                     cell.setPower(true);
                     updatePowerGrid();
                     break;
+                default:
+                    break;
             }
             
-            publishEvent(new CellPlacedEvent(x, y, selectedTool));
+            publishEvent(new CellPlacedEvent(x, y));
         }
     }
 
@@ -161,11 +163,11 @@ public class GameController implements Publisher<GameEvent> {
         return false;
     }
 
-    public void setSelectedTool(String tool) {
+    public void setSelectedTool(CellType tool) {
         this.selectedTool = tool;
     }
 
-    public String getSelectedTool() {
+    public CellType getSelectedTool() {
         return selectedTool;
     }
 

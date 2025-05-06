@@ -2,8 +2,10 @@ package com.citybuilder.ui;
 
 import com.citybuilder.controller.GameController;
 import com.citybuilder.modelBis.Cell;
+import com.citybuilder.modelBis.CellType;
+import com.citybuilder.modelBis.City;
 import com.citybuilder.modelBis.events.GameEvent;
-import com.citybuilder.Sub;
+import com.citybuilder.service.GameStateService;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
@@ -22,20 +24,30 @@ import javafx.util.Duration;
 
 import java.util.concurrent.Flow.Subscriber;
 
-public class GameView implements Subscriber<GameEvent> {
+public class GameView extends BorderPane implements Subscriber<GameEvent> {
     private final GameController controller;
+    private final City city;
+    private final GameStateService gameStateService;
+    private CellType selectedTool = CellType.ROAD;
     private final GridPane gridPane;
     private final VBox root;
     private final ToolBar toolbar;
     private final HBox statsBar;
     private final VBox notificationArea;
-    private String selectedTool = "ROAD";
     private Rectangle[][] cells;
     private int lastX = -1;
     private int lastY = -1;
+    private final Label cityNameLabel;
+    private final Label moneyLabel;
+    private final Label populationLabel;
+    private final Label workersLabel;
+    private final Label satisfactionLabel;
+    private final Label hazardLabel;
 
-    public GameView(GameController controller) {
+    public GameView(GameController controller, City city, GameStateService gameStateService) {
         this.controller = controller;
+        this.city = city;
+        this.gameStateService = gameStateService;
         this.gridPane = new GridPane();
         this.toolbar = createToolbar();
         this.statsBar = createStatsBar();
@@ -45,8 +57,22 @@ public class GameView implements Subscriber<GameEvent> {
         this.root = new VBox(toolbar, statsBar, gridPane, notificationArea);
         
         // Initialiser la grille avec les dimensions de la ville
-        Cell[][] map = controller.getCity().getMap();
+        Cell[][] map = city.getMap();
         this.cells = new Rectangle[map.length][map[0].length];
+        
+        // Créer les labels pour les statistiques
+        cityNameLabel = new Label("Ville: " + city.getName());
+        moneyLabel = new Label("Argent: " + city.getMoney());
+        populationLabel = new Label("Population: " + getTotalPopulation());
+        workersLabel = new Label("Travailleurs: " + getTotalWorkers());
+        satisfactionLabel = new Label("Satisfaction: " + getAverageSatisfaction() + "%");
+        hazardLabel = new Label("Risque: " + city.getHazardRate() + "%");
+        
+        // Ajouter les composants à la vue
+        setTop(toolbar);
+        setLeft(new VBox(5, cityNameLabel, moneyLabel, populationLabel, 
+                       workersLabel, satisfactionLabel, hazardLabel));
+        setCenter(gridPane);
         
         initializeGrid();
         setupGridInteraction();
@@ -58,35 +84,15 @@ public class GameView implements Subscriber<GameEvent> {
     private ToolBar createToolbar() {
         ToolBar toolbar = new ToolBar();
         
-        Button roadButton = new Button("Route");
-        roadButton.setOnAction(e -> selectedTool = "ROAD");
+        // Créer les boutons pour chaque type de construction
+        for (CellType type : CellType.values()) {
+            if (type != CellType.EMPTY) {
+                Button button = new Button(type.name());
+                button.setOnAction(e -> selectedTool = type);
+                toolbar.getItems().add(button);
+            }
+        }
         
-        Button residentialButton = new Button("Zone Résidentielle");
-        residentialButton.setOnAction(e -> selectedTool = "RESIDENTIAL");
-        
-        Button industrialButton = new Button("Zone Industrielle");
-        industrialButton.setOnAction(e -> selectedTool = "INDUSTRIAL");
-        
-        Button powerPlantButton = new Button("Centrale Électrique");
-        powerPlantButton.setOnAction(e -> selectedTool = "POWER_PLANT");
-        
-        Button powerPoleButton = new Button("Pylône Électrique");
-        powerPoleButton.setOnAction(e -> selectedTool = "POWER_POLE");
-        
-        Button policeStationButton = new Button("Commissariat");
-        policeStationButton.setOnAction(e -> selectedTool = "POLICE_STATION");
-        
-        Button fireStationButton = new Button("Caserne de Pompiers");
-        fireStationButton.setOnAction(e -> selectedTool = "FIRE_STATION");
-        
-        Button bulldozerButton = new Button("Bulldozer");
-        bulldozerButton.setOnAction(e -> selectedTool = "BULLDOZER");
-        
-        toolbar.getItems().addAll(
-            roadButton, residentialButton, industrialButton, 
-            powerPlantButton, powerPoleButton, policeStationButton,
-            fireStationButton, bulldozerButton
-        );
         return toolbar;
     }
 
@@ -94,27 +100,9 @@ public class GameView implements Subscriber<GameEvent> {
         HBox statsBar = new HBox(10);
         statsBar.setPadding(new javafx.geometry.Insets(5));
         
-        Label cityNameLabel = new Label();
-        cityNameLabel.textProperty().bind(Bindings.concat("Ville: ", controller.getCityName()));
-        
-        Label moneyLabel = new Label();
-        moneyLabel.textProperty().bind(Bindings.concat("Argent: ", controller.getMoney()));
-        
-        Label populationLabel = new Label();
-        populationLabel.textProperty().bind(Bindings.concat("Population: ", controller.getTotalPopulation()));
-        
-        Label workersLabel = new Label();
-        workersLabel.textProperty().bind(Bindings.concat("Travailleurs: ", controller.getTotalWorkers()));
-        
-        Label satisfactionLabel = new Label();
-        satisfactionLabel.textProperty().bind(Bindings.concat("Satisfaction: ", controller.getAverageSatisfaction()));
-        
-        Label hazardRateLabel = new Label();
-        hazardRateLabel.textProperty().bind(Bindings.concat("Taux de risque: ", controller.getHazardRate()));
-        
         statsBar.getChildren().addAll(
             cityNameLabel, moneyLabel, populationLabel, 
-            workersLabel, satisfactionLabel, hazardRateLabel
+            workersLabel, satisfactionLabel, hazardLabel
         );
         return statsBar;
     }
@@ -138,7 +126,7 @@ public class GameView implements Subscriber<GameEvent> {
 
     private void initializeGrid() {
         gridPane.setGridLinesVisible(true);
-        Cell[][] map = controller.getCity().getMap();
+        Cell[][] map = city.getMap();
         
         for (int x = 0; x < map.length; x++) {
             for (int y = 0; y < map[0].length; y++) {
@@ -160,7 +148,7 @@ public class GameView implements Subscriber<GameEvent> {
         int x = (int) (event.getX() / 20);
         int y = (int) (event.getY() / 20);
         
-        Cell[][] map = controller.getCity().getMap();
+        Cell[][] map = city.getMap();
         if (x >= 0 && x < map.length && y >= 0 && y < map[0].length) {
             lastX = x;
             lastY = y;
@@ -172,9 +160,9 @@ public class GameView implements Subscriber<GameEvent> {
         int x = (int) (event.getX() / 20);
         int y = (int) (event.getY() / 20);
         
-        Cell[][] map = controller.getCity().getMap();
+        Cell[][] map = city.getMap();
         if (x >= 0 && x < map.length && y >= 0 && y < map[0].length && 
-            (selectedTool.equals("ROAD") || selectedTool.equals("POWER_POLE") || selectedTool.equals("RESIDENTIAL"))) {
+            (selectedTool.equals(CellType.ROAD) || selectedTool.equals(CellType.POWER_POLE) || selectedTool.equals(CellType.RESIDENTIAL))) {
             if (lastX != -1 && lastY != -1) {
                 drawLine(lastX, lastY, x, y);
             }
@@ -211,37 +199,94 @@ public class GameView implements Subscriber<GameEvent> {
     }
 
     private void handleCellClick(int x, int y) {
-        if (selectedTool.equals("BULLDOZER")) {
+        if (selectedTool.equals(CellType.BULLDOZER)) {
             controller.removeCell(x, y);
         } else {
-            controller.placeCell(x, y, selectedTool);
+            gameStateService.purchase(selectedTool, city.getMap()[x][y]);
         }
+        updateGrid();
+    }
+
+    private void updateGrid() {
+        Cell[][] map = city.getMap();
+        for (int x = 0; x < map.length; x++) {
+            for (int y = 0; y < map[0].length; y++) {
+                Rectangle cell = (Rectangle) gridPane.getChildren().get(x * map[0].length + y);
+                cell.setFill(getColorForCell(map[x][y]));
+            }
+        }
+        
+        // Mettre à jour les statistiques
+        moneyLabel.setText("Argent: " + city.getMoney());
+        populationLabel.setText("Population: " + getTotalPopulation());
+        workersLabel.setText("Travailleurs: " + getTotalWorkers());
+        satisfactionLabel.setText("Satisfaction: " + getAverageSatisfaction() + "%");
     }
 
     private Color getColorForCell(Cell cell) {
-        if (cell == null) return Color.BLACK;
+        if (cell == null) return Color.GRAY;
+        
         if (cell.getIsWater()) return Color.BLUE;
         
         switch (cell.getType()) {
             case ROAD:
-                return Color.GRAY;
+                return Color.DARKGRAY;
             case RESIDENTIAL:
-                return cell.hasPower() ? Color.LIGHTBLUE : Color.DARKBLUE;
+                return cell.hasPower() ? Color.GREEN : Color.DARKGREEN;
             case INDUSTRIAL:
-                return cell.hasPower() ? Color.ORANGE : Color.DARKRED;
+                return cell.hasPower() ? Color.ORANGE : Color.DARKORANGE;
             case POWER_PLANT:
-                return Color.YELLOW;
+                return Color.RED;
             case POWER_POLE:
-                return Color.ORANGE;
+                return Color.YELLOW;
             case POLICE_STATION:
-                return Color.DARKBLUE;
+                return Color.BLUE;
             case FIRE_STATION:
-                return Color.DARKRED;
-            case EMPTY:
-                return Color.rgb(34, 139, 34); // Forest Green
+                return Color.RED;
             default:
-                return Color.BLACK;
+                return Color.LIGHTGRAY;
         }
+    }
+
+    private int getTotalPopulation() {
+        int total = 0;
+        Cell[][] map = city.getMap();
+        for (Cell[] cells : map) {
+            for (Cell cell : cells) {
+                if (cell != null) {
+                    total += cell.getPopulation();
+                }
+            }
+        }
+        return total;
+    }
+    
+    private int getTotalWorkers() {
+        int total = 0;
+        Cell[][] map = city.getMap();
+        for (Cell[] cells : map) {
+            for (Cell cell : cells) {
+                if (cell != null) {
+                    total += cell.getWorkers();
+                }
+            }
+        }
+        return total;
+    }
+    
+    private int getAverageSatisfaction() {
+        int total = 0;
+        int count = 0;
+        Cell[][] map = city.getMap();
+        for (Cell[] cells : map) {
+            for (Cell cell : cells) {
+                if (cell != null && cell.getType() == CellType.RESIDENTIAL) {
+                    total += cell.getSatisfaction();
+                    count++;
+                }
+            }
+        }
+        return count > 0 ? total / count : 0;
     }
 
     public VBox getRoot() {
@@ -251,7 +296,7 @@ public class GameView implements Subscriber<GameEvent> {
     @Override
     public void onNext(GameEvent event) {
         // Mettre à jour la vue en fonction de l'événement
-        Cell[][] map = controller.getCity().getMap();
+        Cell[][] map = city.getMap();
         for (int x = 0; x < map.length; x++) {
             for (int y = 0; y < map[0].length; y++) {
                 cells[x][y].setFill(getColorForCell(map[x][y]));

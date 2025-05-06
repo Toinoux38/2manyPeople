@@ -4,7 +4,7 @@ import com.citybuilder.Sub;
 import com.citybuilder.modelBis.City;
 import com.citybuilder.modelBis.events.GameOverEvent;
 import com.citybuilder.modelBis.events.StartEvent;
-import com.citybuilder.modelBis.events.CityUpdateEvent;
+import com.citybuilder.modelBis.events.UpdateEvent;
 
 import javax.inject.Inject;
 
@@ -26,7 +26,7 @@ public class GameService {
 
     public void update() {
         city.update();
-        gameStateService.submit(new CityUpdateEvent(city));
+        gameStateService.submit(new UpdateEvent(city));
     }
 
     public void stop() {
@@ -35,5 +35,9 @@ public class GameService {
 
     public City getCity() {
         return city;
+    }
+
+    public GameStateService getGameStateService() {
+        return gameStateService;
     }
 }

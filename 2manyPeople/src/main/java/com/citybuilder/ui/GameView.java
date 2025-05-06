@@ -100,10 +100,22 @@ public class GameView implements Subscriber<GameEvent> {
         Label moneyLabel = new Label();
         moneyLabel.textProperty().bind(Bindings.concat("Argent: ", controller.getMoney()));
         
+        Label populationLabel = new Label();
+        populationLabel.textProperty().bind(Bindings.concat("Population: ", controller.getTotalPopulation()));
+        
+        Label workersLabel = new Label();
+        workersLabel.textProperty().bind(Bindings.concat("Travailleurs: ", controller.getTotalWorkers()));
+        
+        Label satisfactionLabel = new Label();
+        satisfactionLabel.textProperty().bind(Bindings.concat("Satisfaction: ", controller.getAverageSatisfaction()));
+        
         Label hazardRateLabel = new Label();
         hazardRateLabel.textProperty().bind(Bindings.concat("Taux de risque: ", controller.getHazardRate()));
         
-        statsBar.getChildren().addAll(cityNameLabel, moneyLabel, hazardRateLabel);
+        statsBar.getChildren().addAll(
+            cityNameLabel, moneyLabel, populationLabel, 
+            workersLabel, satisfactionLabel, hazardRateLabel
+        );
         return statsBar;
     }
 
@@ -208,9 +220,28 @@ public class GameView implements Subscriber<GameEvent> {
 
     private Color getColorForCell(Cell cell) {
         if (cell == null) return Color.BLACK;
+        if (cell.getIsWater()) return Color.BLUE;
         
-        // Pour l'instant, on utilise une couleur simple
-        return cell.getIsWater() ? Color.BLUE : Color.rgb(34, 139, 34); // Forest Green
+        switch (cell.getType()) {
+            case ROAD:
+                return Color.GRAY;
+            case RESIDENTIAL:
+                return cell.hasPower() ? Color.LIGHTBLUE : Color.DARKBLUE;
+            case INDUSTRIAL:
+                return cell.hasPower() ? Color.ORANGE : Color.DARKRED;
+            case POWER_PLANT:
+                return Color.YELLOW;
+            case POWER_POLE:
+                return Color.ORANGE;
+            case POLICE_STATION:
+                return Color.DARKBLUE;
+            case FIRE_STATION:
+                return Color.DARKRED;
+            case EMPTY:
+                return Color.rgb(34, 139, 34); // Forest Green
+            default:
+                return Color.BLACK;
+        }
     }
 
     public VBox getRoot() {

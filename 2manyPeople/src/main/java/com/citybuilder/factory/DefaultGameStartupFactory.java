@@ -7,8 +7,8 @@ import com.citybuilder.modelBis.Loan;
 import java.util.ArrayList;
 
 public class DefaultGameStartupFactory implements GameStartupFactory {
-    private static final int DEFAULT_WIDTH = 20;
-    private static final int DEFAULT_HEIGHT = 20;
+    private static final int DEFAULT_WIDTH = 50;
+    private static final int DEFAULT_HEIGHT = 50;
     private static final int DEFAULT_MONEY = 10000;
 
     @Override

@@ -1,67 +1,29 @@
 package com.citybuilder.controller;
 
-import com.citybuilder.model.Tile;
-import com.citybuilder.model.TileType;
-import com.citybuilder.model.World;
-import com.citybuilder.model.WorldEvent;
-import com.citybuilder.model.WorldObserver;
+import com.citybuilder.modelBis.City;
+import com.citybuilder.modelBis.events.GameEvent;
+import com.citybuilder.service.GameService;
+import com.citybuilder.Sub;
 
-import java.util.ArrayList;
-import java.util.List;
+import javax.inject.Inject;
 
 public class GameController {
-    private final World world;
-    private final List<WorldObserver> observers;
-    private String selectedTool;
+    private final GameService gameService;
 
-    public GameController(World world) {
-        this.world = world;
-        this.observers = new ArrayList<>();
-        this.selectedTool = "ROAD";
+    @Inject
+    public GameController(GameService gameService) {
+        this.gameService = gameService;
     }
 
-    public World getWorld() {
-        return world;
+    public void update() {
+        gameService.update();
     }
 
-    public void addObserver(WorldObserver observer) {
-        observers.add(observer);
+    public void subscribeToEvents(Class<? extends GameEvent> eventType, java.util.function.Consumer<? extends GameEvent> consumer) {
+        gameService.getGameStateService().subscribe(Sub.get(eventType, consumer));
     }
 
-    public void removeObserver(WorldObserver observer) {
-        observers.remove(observer);
-    }
-
-    public void placeTile(int x, int y, String toolType) {
-        TileType type = TileType.valueOf(toolType);
-        Tile tile = new Tile(x, y, type);
-        world.setTile(x, y, tile);
-        notifyObservers();
-    }
-
-    public void removeTile(int x, int y) {
-        world.removeTile(x, y);
-        notifyObservers();
-    }
-
-    public void setSelectedTool(String tool) {
-        this.selectedTool = tool;
-    }
-
-    public String getSelectedTool() {
-        return selectedTool;
-    }
-
-    private void notifyObservers() {
-        for (WorldObserver observer : observers) {
-            observer.update();
-        }
-    }
-
-    public void triggerEvent(WorldEvent event) {
-        world.addEvent(event);
-        for (WorldObserver observer : observers) {
-            observer.onWorldEvent(event);
-        }
+    public City getCity() {
+        return gameService.getCity();
     }
 } 

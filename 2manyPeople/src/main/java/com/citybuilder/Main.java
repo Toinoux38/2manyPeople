@@ -1,3 +1,4 @@
+// 2ManyPeople - 2025 - youmix27 & toinoux38
 package com.citybuilder;
 
 import com.citybuilder.controller.GameController;

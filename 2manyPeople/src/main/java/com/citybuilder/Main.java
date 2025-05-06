@@ -33,10 +33,10 @@ public class Main extends Application {
         // Initialiser le service d'état avec la ville
         gameStateService.setCity(city);
 
-        // Créer la vue et le contrôleur
+        // Créer la vue
         GameView view = new GameView(city, gameStateService);
-        Scene scene = new Scene(view);
-        primaryStage.setTitle("City Builder");
+        Scene scene = new Scene(view.getRoot());
+        primaryStage.setTitle("City Builder - " + city.getName());
         primaryStage.setScene(scene);
         primaryStage.show();
     }

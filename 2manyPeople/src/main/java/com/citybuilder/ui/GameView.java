@@ -1,6 +1,5 @@
 package com.citybuilder.ui;
 
-import com.citybuilder.controller.GameController;
 import com.citybuilder.modelBis.Cell;
 import com.citybuilder.modelBis.CellType;
 import com.citybuilder.modelBis.City;
@@ -25,7 +24,6 @@ import javafx.util.Duration;
 import java.util.concurrent.Flow.Subscriber;
 
 public class GameView extends BorderPane implements Subscriber<GameEvent> {
-    private final GameController controller;
     private final City city;
     private final GameStateService gameStateService;
     private CellType selectedTool = CellType.ROAD;
@@ -44,8 +42,7 @@ public class GameView extends BorderPane implements Subscriber<GameEvent> {
     private final Label satisfactionLabel;
     private final Label hazardLabel;
 
-    public GameView(GameController controller, City city, GameStateService gameStateService) {
-        this.controller = controller;
+    public GameView(City city, GameStateService gameStateService) {
         this.city = city;
         this.gameStateService = gameStateService;
         this.gridPane = new GridPane();
@@ -78,7 +75,7 @@ public class GameView extends BorderPane implements Subscriber<GameEvent> {
         setupGridInteraction();
         
         // S'enregistrer comme subscriber
-        controller.subscribe(this);
+        gameStateService.subscribe(this);
     }
 
     private ToolBar createToolbar() {
@@ -162,7 +159,7 @@ public class GameView extends BorderPane implements Subscriber<GameEvent> {
         
         Cell[][] map = city.getMap();
         if (x >= 0 && x < map.length && y >= 0 && y < map[0].length && 
-            (selectedTool.equals(CellType.ROAD) || selectedTool.equals(CellType.POWER_POLE) || selectedTool.equals(CellType.RESIDENTIAL))) {
+            (selectedTool == CellType.ROAD || selectedTool == CellType.POWER_POLE || selectedTool == CellType.RESIDENTIAL)) {
             if (lastX != -1 && lastY != -1) {
                 drawLine(lastX, lastY, x, y);
             }
@@ -199,20 +196,22 @@ public class GameView extends BorderPane implements Subscriber<GameEvent> {
     }
 
     private void handleCellClick(int x, int y) {
-        if (selectedTool.equals(CellType.BULLDOZER)) {
-            controller.removeCell(x, y);
-        } else {
-            gameStateService.purchase(selectedTool, city.getMap()[x][y]);
+        Cell cell = city.getMap()[x][y];
+        if (cell != null) {
+            if (selectedTool == CellType.EMPTY) {
+                gameStateService.destroy(cell);
+            } else {
+                gameStateService.purchase(selectedTool, cell);
+            }
+            updateGrid();
         }
-        updateGrid();
     }
 
     private void updateGrid() {
         Cell[][] map = city.getMap();
         for (int x = 0; x < map.length; x++) {
             for (int y = 0; y < map[0].length; y++) {
-                Rectangle cell = (Rectangle) gridPane.getChildren().get(x * map[0].length + y);
-                cell.setFill(getColorForCell(map[x][y]));
+                cells[x][y].setFill(getColorForCell(map[x][y]));
             }
         }
         
@@ -295,13 +294,7 @@ public class GameView extends BorderPane implements Subscriber<GameEvent> {
 
     @Override
     public void onNext(GameEvent event) {
-        // Mettre à jour la vue en fonction de l'événement
-        Cell[][] map = city.getMap();
-        for (int x = 0; x < map.length; x++) {
-            for (int y = 0; y < map[0].length; y++) {
-                cells[x][y].setFill(getColorForCell(map[x][y]));
-            }
-        }
+        updateGrid();
         showNotification("Événement: " + event.getType());
     }
 

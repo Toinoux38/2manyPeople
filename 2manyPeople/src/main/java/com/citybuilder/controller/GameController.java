@@ -7,6 +7,7 @@ import com.citybuilder.modelBis.events.CellPlacedEvent;
 import com.citybuilder.modelBis.events.CellRemovedEvent;
 import com.citybuilder.modelBis.events.GameEvent;
 import com.citybuilder.Sub;
+import com.citybuilder.service.GameStateService;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,11 +18,13 @@ public class GameController implements Publisher<GameEvent> {
     private final City city;
     private final List<Subscriber<? super GameEvent>> subscribers;
     private String selectedTool;
+    private final GameStateService gameStateService;
 
-    public GameController(City city) {
+    public GameController(City city, GameStateService gameStateService) {
         this.city = city;
         this.subscribers = new ArrayList<>();
         this.selectedTool = "ROAD";
+        this.gameStateService = gameStateService;
     }
 
     public City getCity() {
@@ -33,36 +36,37 @@ public class GameController implements Publisher<GameEvent> {
         subscribers.add(subscriber);
     }
 
-    public void placeCell(int x, int y, String toolType) {
-        Cell cell = city.getMap()[x][y];
-        if (cell == null || !cell.canBeBuilt()) {
-            return;
+    public void placeCell(int x, int y) {
+        Cell cell = city.getCell(x, y);
+        if (cell != null && gameStateService.purchase(selectedTool, cell)) {
+            cell.setType(selectedTool);
+            
+            // Gestion des effets spécifiques
+            switch (selectedTool) {
+                case RESIDENTIAL:
+                    if (hasPowerNearby(x, y)) {
+                        cell.setPopulation(10);
+                        cell.setPower(true);
+                    }
+                    break;
+                case INDUSTRIAL:
+                    if (hasPowerNearby(x, y)) {
+                        cell.setWorkers(5);
+                        cell.setPower(true);
+                    }
+                    break;
+                case POWER_PLANT:
+                    cell.setPower(true);
+                    updatePowerGrid();
+                    break;
+                case POWER_POLE:
+                    cell.setPower(true);
+                    updatePowerGrid();
+                    break;
+            }
+            
+            publishEvent(new CellPlacedEvent(x, y, selectedTool));
         }
-
-        CellType type = CellType.valueOf(toolType);
-        cell.setType(type);
-
-        // Gérer les effets spécifiques au type de cellule
-        switch (type) {
-            case RESIDENTIAL:
-                if (hasPowerNearby(x, y)) {
-                    cell.setPopulation(10);
-                }
-                break;
-            case INDUSTRIAL:
-                if (hasPowerNearby(x, y)) {
-                    cell.setWorkers(5);
-                }
-                break;
-            case POWER_PLANT:
-                updatePowerGrid();
-                break;
-            case POWER_POLE:
-                updatePowerGrid();
-                break;
-        }
-
-        notifySubscribers(new CellPlacedEvent(x, y));
     }
 
     public void removeCell(int x, int y) {
@@ -226,5 +230,9 @@ public class GameController implements Publisher<GameEvent> {
             }
         }
         return count > 0 ? total / count : 0;
+    }
+
+    private void publishEvent(CellPlacedEvent event) {
+        notifySubscribers(event);
     }
 } 

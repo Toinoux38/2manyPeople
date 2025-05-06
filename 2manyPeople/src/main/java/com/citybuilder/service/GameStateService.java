@@ -1,14 +1,13 @@
 package com.citybuilder.service;
 
-
 import com.citybuilder.Sub;
 import com.citybuilder.modelBis.Cell;
+import com.citybuilder.modelBis.CellCost;
+import com.citybuilder.modelBis.CellType;
 import com.citybuilder.modelBis.City;
 import com.citybuilder.modelBis.events.GameEvent;
 import com.citybuilder.modelBis.events.PauseEvent;
-import com.citybuilder.modelBis.purchasable.Purchasable;
 
-import java.awt.*;
 import java.util.concurrent.SubmissionPublisher;
 
 public class GameStateService extends SubmissionPublisher<GameEvent> {
@@ -19,20 +18,23 @@ public class GameStateService extends SubmissionPublisher<GameEvent> {
         this.subscribe(Sub.get(PauseEvent.class, t -> pause()));
     }
 
-    public boolean purchase(Purchasable content, Cell cell) {
-        Point point = cell.getLocation();
-        if (this.getCity().getMoney() < content.getPrice() || cell.getContent() != null || cell.getIsWater()) {
+    public boolean purchase(CellType type, Cell cell) {
+        if (this.getCity().getMoney() < CellCost.getCost(type) || !cell.canBeBuilt()) {
             return false;
         }
-        this.getCity().setMoney(this.getCity().getMoney() - content.getPrice());
-        cell.setContent(content);
+        this.getCity().setMoney(this.getCity().getMoney() - CellCost.getCost(type));
+        cell.setType(type);
         return true;
     }
 
     public boolean destroy(Cell cell) {
-        if(cell.getContent() != null) {
-            this.getCity().setMoney(this.getCity().getMoney() + (cell.getContent().getPrice() / 4));
-            cell.setContent(null);
+        if (cell.canBeBulldozed()) {
+            CellType oldType = cell.getType();
+            this.getCity().setMoney(this.getCity().getMoney() + CellCost.getRefund(oldType));
+            cell.setType(CellType.EMPTY);
+            cell.setPower(false);
+            cell.setPopulation(0);
+            cell.setWorkers(0);
             return true;
         }
         return false;
@@ -50,5 +52,7 @@ public class GameStateService extends SubmissionPublisher<GameEvent> {
         return city;
     }
 
-
+    public void setCity(City city) {
+        this.city = city;
+    }
 }

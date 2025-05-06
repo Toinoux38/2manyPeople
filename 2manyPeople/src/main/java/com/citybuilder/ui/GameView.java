@@ -20,6 +20,7 @@ import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.animation.PauseTransition;
 import javafx.util.Duration;
+import javafx.geometry.Insets;
 
 import java.util.concurrent.Flow.Subscriber;
 
@@ -41,6 +42,9 @@ public class GameView extends BorderPane implements Subscriber<GameEvent> {
     private final Label workersLabel;
     private final Label satisfactionLabel;
     private final Label hazardLabel;
+    private static final int CELL_SIZE = 20;
+    private static final int MIN_WINDOW_WIDTH = 800;
+    private static final int MIN_WINDOW_HEIGHT = 600;
 
     public GameView(City city, GameStateService gameStateService) {
         this.city = city;
@@ -61,17 +65,38 @@ public class GameView extends BorderPane implements Subscriber<GameEvent> {
         this.notificationArea = createNotificationArea();
         
         // Créer le layout principal
-        this.root = new VBox(toolbar, statsBar, gridPane, notificationArea);
+        this.root = new VBox(10); // 10 pixels d'espacement
+        this.root.setPadding(new Insets(10));
+        this.root.setMinSize(MIN_WINDOW_WIDTH, MIN_WINDOW_HEIGHT);
         
         // Initialiser la grille avec les dimensions de la ville
         Cell[][] map = city.getMap();
         this.cells = new Rectangle[map.length][map[0].length];
         
+        // Configurer le layout principal
+        VBox leftPanel = new VBox(10);
+        leftPanel.setPadding(new Insets(10));
+        leftPanel.setMinWidth(200);
+        leftPanel.getChildren().addAll(
+            cityNameLabel, moneyLabel, populationLabel, 
+            workersLabel, satisfactionLabel, hazardLabel
+        );
+        
+        // Configurer la grille
+        gridPane.setHgap(1);
+        gridPane.setVgap(1);
+        gridPane.setPadding(new Insets(10));
+        gridPane.setGridLinesVisible(true);
+        
         // Ajouter les composants à la vue
         setTop(toolbar);
-        setLeft(new VBox(5, cityNameLabel, moneyLabel, populationLabel, 
-                       workersLabel, satisfactionLabel, hazardLabel));
+        setLeft(leftPanel);
         setCenter(gridPane);
+        setBottom(notificationArea);
+        
+        // Configurer les contraintes de redimensionnement
+        HBox.setHgrow(gridPane, Priority.ALWAYS);
+        VBox.setVgrow(gridPane, Priority.ALWAYS);
         
         initializeGrid();
         setupGridInteraction();
@@ -82,11 +107,13 @@ public class GameView extends BorderPane implements Subscriber<GameEvent> {
 
     private ToolBar createToolbar() {
         ToolBar toolbar = new ToolBar();
+        toolbar.setPadding(new Insets(5));
         
         // Créer les boutons pour chaque type de construction
         for (CellType type : CellType.values()) {
             if (type != CellType.EMPTY) {
                 Button button = new Button(type.name());
+                button.setMinWidth(100);
                 button.setOnAction(e -> selectedTool = type);
                 toolbar.getItems().add(button);
             }
@@ -97,7 +124,8 @@ public class GameView extends BorderPane implements Subscriber<GameEvent> {
 
     private HBox createStatsBar() {
         HBox statsBar = new HBox(10);
-        statsBar.setPadding(new javafx.geometry.Insets(5));
+        statsBar.setPadding(new Insets(5));
+        statsBar.setAlignment(Pos.CENTER_LEFT);
         
         statsBar.getChildren().addAll(
             cityNameLabel, moneyLabel, populationLabel, 
@@ -108,8 +136,9 @@ public class GameView extends BorderPane implements Subscriber<GameEvent> {
 
     private VBox createNotificationArea() {
         VBox notificationArea = new VBox(5);
-        notificationArea.setPadding(new javafx.geometry.Insets(5));
+        notificationArea.setPadding(new Insets(5));
         notificationArea.setAlignment(Pos.BOTTOM_LEFT);
+        notificationArea.setMinHeight(50);
         return notificationArea;
     }
 
@@ -124,12 +153,11 @@ public class GameView extends BorderPane implements Subscriber<GameEvent> {
     }
 
     private void initializeGrid() {
-        gridPane.setGridLinesVisible(true);
         Cell[][] map = city.getMap();
         
         for (int x = 0; x < map.length; x++) {
             for (int y = 0; y < map[0].length; y++) {
-                Rectangle cell = new Rectangle(20, 20);
+                Rectangle cell = new Rectangle(CELL_SIZE, CELL_SIZE);
                 cell.setFill(getColorForCell(map[x][y]));
                 cells[x][y] = cell;
                 gridPane.add(cell, x, y);

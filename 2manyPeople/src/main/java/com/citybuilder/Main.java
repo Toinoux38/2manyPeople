@@ -17,30 +17,31 @@ public class Main extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        // Initialiser Dagger avec le Stage
+        // Initialiser Dagger
         gameComponent = DaggerGameComponent.builder()
-            .gameModule(new GameModule(primaryStage))
-            .build();
+                .gameModule(new GameModule(primaryStage))
+                .build();
 
-        // Obtenir la boîte de dialogue de démarrage
-        GameStartupDialog dialog = gameComponent.gameStartupDialog();
-        
-        // Créer la ville via la boîte de dialogue
+        // Créer la ville via le dialogue de démarrage
+        GameStartupDialog dialog = gameComponent.getGameStartupDialog();
         City city = dialog.showAndWait();
+
         if (city == null) {
             System.exit(0);
             return;
         }
 
-        // Initialiser le service d'état avec la ville
-        GameStateService gameStateService = gameComponent.gameStateService();
-        gameStateService.setCity(city);
-
-        // Créer la vue
-        GameView view = new GameView(city, gameStateService);
-        Scene scene = new Scene(view.getRoot());
+        // Créer la vue du jeu
+        GameView gameView = new GameView(city, gameComponent.getGameStateService());
+        
+        // Créer la scène
+        Scene scene = new Scene(gameView.getRoot());
+        
+        // Configurer la fenêtre principale
         primaryStage.setTitle("City Builder - " + city.getName());
         primaryStage.setScene(scene);
+        primaryStage.setMinWidth(800);
+        primaryStage.setMinHeight(600);
         primaryStage.show();
     }
 

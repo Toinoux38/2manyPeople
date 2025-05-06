@@ -13,16 +13,16 @@ import javax.inject.Singleton;
 
 @Module
 public class GameModule {
-    private final Stage primaryStage;
+    private final Stage stage;
 
-    public GameModule(Stage primaryStage) {
-        this.primaryStage = primaryStage;
+    public GameModule(Stage stage) {
+        this.stage = stage;
     }
 
     @Provides
     @Singleton
-    Stage providePrimaryStage() {
-        return primaryStage;
+    Stage provideStage() {
+        return stage;
     }
 
     @Provides

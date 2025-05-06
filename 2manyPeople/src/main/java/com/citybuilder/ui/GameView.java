@@ -45,6 +45,16 @@ public class GameView extends BorderPane implements Subscriber<GameEvent> {
     public GameView(City city, GameStateService gameStateService) {
         this.city = city;
         this.gameStateService = gameStateService;
+        
+        // Créer les labels pour les statistiques
+        cityNameLabel = new Label("Ville: " + city.getName());
+        moneyLabel = new Label("Argent: " + city.getMoney());
+        populationLabel = new Label("Population: " + getTotalPopulation());
+        workersLabel = new Label("Travailleurs: " + getTotalWorkers());
+        satisfactionLabel = new Label("Satisfaction: " + getAverageSatisfaction() + "%");
+        hazardLabel = new Label("Risque: " + city.getHazardRate() + "%");
+        
+        // Créer les composants UI
         this.gridPane = new GridPane();
         this.toolbar = createToolbar();
         this.statsBar = createStatsBar();
@@ -56,14 +66,6 @@ public class GameView extends BorderPane implements Subscriber<GameEvent> {
         // Initialiser la grille avec les dimensions de la ville
         Cell[][] map = city.getMap();
         this.cells = new Rectangle[map.length][map[0].length];
-        
-        // Créer les labels pour les statistiques
-        cityNameLabel = new Label("Ville: " + city.getName());
-        moneyLabel = new Label("Argent: " + city.getMoney());
-        populationLabel = new Label("Population: " + getTotalPopulation());
-        workersLabel = new Label("Travailleurs: " + getTotalWorkers());
-        satisfactionLabel = new Label("Satisfaction: " + getAverageSatisfaction() + "%");
-        hazardLabel = new Label("Risque: " + city.getHazardRate() + "%");
         
         // Ajouter les composants à la vue
         setTop(toolbar);
